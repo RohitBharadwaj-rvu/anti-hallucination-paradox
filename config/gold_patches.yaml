@@ -1,0 +1,6 @@
+patches:
+  benchmark_066:
+    expected_answers: ["James Cameron"]      # source typo "James Cameroon" -> fix
+
+notes:
+  benchmark_001: "numeric range gold; factual judge must honor the parenthetical range"

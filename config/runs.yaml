@@ -1,0 +1,29 @@
+runs:
+  - name: nematron_ultra
+    target:
+      provider: nim
+      model_id: nvidia/nemotron-ultra-253b-v1   # REPLACE with exact NIM id you have
+    judge:
+      provider: lmstudio
+      model_id: qwen2.5-7b-instruct             # REPLACE with EXACT name shown in LM Studio server tab
+
+  - name: fw_model_A
+    target:
+      provider: fireworks
+      model_id: accounts/fireworks/models/deepseek-v3   # REPLACE
+    judge:
+      provider: lmstudio
+      model_id: qwen2.5-7b-instruct
+
+  - name: fw_model_B
+    target:
+      provider: fireworks
+      model_id: accounts/fireworks/models/llama-v3p1-70b-instruct   # REPLACE
+    judge:
+      provider: lmstudio
+      model_id: qwen2.5-7b-instruct
+
+# Provider->env var: nim->NVIDIA_API_KEY, fireworks->FIREWORKS_API_KEY (required);
+# lmstudio->LMSTUDIO_API_KEY if non-empty else literal "lm-studio" (never empty).
+# Provider->base_url: nim->NVIDIA_BASE_URL, fireworks->FIREWORKS_BASE_URL, lmstudio->LMSTUDIO_BASE_URL.
+# Provider->billed: nim/fireworks=True, lmstudio=False (excluded from budget + cost estimate).
