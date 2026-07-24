@@ -556,14 +556,25 @@ def build(
     mode: str = "full",
     is_partial: bool = False,
     all_rows_by_run: dict[str, list[dict]] | None = None,
+    report_filename: str = "report.html",
 ) -> str:
     """
     Build the full report: CSVs, PNGs, and HTML.
     Returns path to the HTML report.
     """
     output_path = Path(output_dir)
+    report_filename = Path(report_filename).name
+    if not report_filename.endswith(".html"):
+        report_filename += ".html"
     metrics_dir = str(output_path / "metrics")
-    figures_dir = str(output_path / "figures")
+    # Keep a single model's figures beside its named report so a later run
+    # cannot replace charts embedded by an earlier per-model report.
+    figures_path = (
+        output_path / "figures" / Path(report_filename).stem
+        if report_filename != "report.html"
+        else output_path / "figures"
+    )
+    figures_dir = str(figures_path)
     audit_dir = str(output_path / "audit")
     Path(metrics_dir).mkdir(parents=True, exist_ok=True)
     Path(figures_dir).mkdir(parents=True, exist_ok=True)
@@ -619,7 +630,8 @@ def build(
     tables_html = _build_tables_html(all_runs_rows, all_model_results, bamboogle_audit_rows, raw_rows_map=raw_rows_map)
 
     # Prepare figures info (relative paths)
-    report_html_path = str(output_path / "report.html")
+    # A named single-run report prevents later experiments from overwriting it.
+    report_html_path = str(output_path / report_filename)
     figures_info = []
     for pk in ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]:
         ppath = fig_paths.get(pk)

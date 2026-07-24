@@ -267,9 +267,12 @@ def run_one_target(
                 resp0 = ""
                 usage0 = {}
 
+            judge_calls_before0 = router.total_judge_calls()
             label0, judge_latency_ms0 = grade(router, item, resp0)
+            judge_api_calls0 = router.total_judge_calls() - judge_calls_before0
             row0 = _build_row(
                 run_name, item, "s0", "neutral", resp0, label0, usage0, judge_latency_ms0, mode,
+                judge_api_calls0,
             )
             all_rows.append(row0)
             existing_neutral[sid] = row0
@@ -311,9 +314,12 @@ def run_one_target(
                     resp1 = ""
                     usage1 = {}
 
+                judge_calls_before1 = router.total_judge_calls()
                 label1, judge_latency_ms1 = grade(router, item, resp1)
+                judge_api_calls1 = router.total_judge_calls() - judge_calls_before1
                 row1 = _build_row(
                     run_name, item, "s1", "recovery", resp1, label1, usage1, judge_latency_ms1, mode,
+                    judge_api_calls1,
                 )
                 all_rows.append(row1)
                 append_checkpoint(cp_s1, {**row1, "key": key_s1})
@@ -344,9 +350,12 @@ def run_one_target(
                 resp2 = ""
                 usage2 = {}
 
+            judge_calls_before2 = router.total_judge_calls()
             label2, judge_latency_ms2 = grade(router, item, resp2)
+            judge_api_calls2 = router.total_judge_calls() - judge_calls_before2
             row2 = _build_row(
                 run_name, item, "s2", level, resp2, label2, usage2, judge_latency_ms2, mode,
+                judge_api_calls2,
             )
             all_rows.append(row2)
             append_checkpoint(cp_s2, {**row2, "key": key_s2})
@@ -425,6 +434,7 @@ def _build_row(
     usage: dict,
     judge_latency_ms: float,
     mode: str,
+    judge_api_calls: int = 0,
 ) -> dict:
     """Build a standardized graded row dict with per-row judge latency."""
     judge_called = (
@@ -446,12 +456,15 @@ def _build_row(
         "stage": stage,
         "level": level,
         "response_text": response_text,
+        "thinking_text": usage.get("thinking_text", ""),  # CoT trace (empty for non-thinking models)
         "label": label,
         "label_s1": None,          # filled in post-loop for neutral rows
         "judge_called": judge_called,
+        "judge_api_calls": judge_api_calls,
         "judge_latency_ms": judge_latency_ms,   # real per-call latency (0.0 if no judge)
         "prompt_tokens": usage.get("prompt_tokens", 0),
         "completion_tokens": usage.get("completion_tokens", 0),
+        "raw_completion_tokens": usage.get("raw_completion_tokens", usage.get("completion_tokens", 0)),
         "total_tokens": usage.get("total_tokens", 0),
         "mode": mode,
         "raw_metadata": item.get("raw_metadata", {}),
@@ -707,8 +720,23 @@ def run(
 
         end_time = now_iso()
 
-        # Build run metadata with real values from router
-        approx_cloud_tokens = router.budget.used(run_cfg["target"]["provider"])
+        # Derive report metadata from persisted rows too. On a resumed run the
+        # router has made no new calls, but the saved rows still represent the
+        # completed experiment.
+        persisted_target_calls = len(rows)
+        persisted_judge_calls = sum(
+            r.get("judge_api_calls", 1 if r.get("judge_called") else 0)
+            for r in rows
+        )
+        persisted_cloud_tokens = sum(r.get("total_tokens", 0) for r in rows)
+        persisted_mean_judge_latency_ms = (
+            sum(r.get("judge_latency_ms", 0.0) for r in rows) / len(rows)
+            if rows else 0.0
+        )
+        approx_cloud_tokens = max(
+            router.budget.used(run_cfg["target"]["provider"]),
+            persisted_cloud_tokens,
+        )
         budget_limit_map = {
             "nim": settings.budget.get("nim_max_tokens", 900_000),
             "fireworks": settings.budget.get("fireworks_max_tokens", 2_000_000),
@@ -728,26 +756,31 @@ def run(
             "mode": mode,
             "start_time": start_time,
             "end_time": end_time,
-            "total_target_calls": router.total_target_calls(),
-            "total_judge_calls": router.total_judge_calls(),
+            "total_target_calls": max(router.total_target_calls(), persisted_target_calls),
+            "total_judge_calls": max(router.total_judge_calls(), persisted_judge_calls),
             "approx_cloud_tokens": approx_cloud_tokens,
             "budget_fraction": budget_fraction_str,
-            "mean_judge_latency_ms": router.mean_judge_latency_ms(),
+            "mean_judge_latency_ms": persisted_mean_judge_latency_ms,
         })
 
     # Build report
     if all_runs_rows:
         try:
-            reporter_mod.build(
+            report_filename = (
+                f"report_{runs_filtered[0]['name']}.html"
+                if len(runs_filtered) == 1 else "report.html"
+            )
+            report_path = reporter_mod.build(
                 all_runs_rows=all_runs_rows,
                 all_model_results=all_model_results,
                 run_metadata_list=run_metadata_list,
                 output_dir=output_dir,
                 mode=mode,
                 is_partial=any_partial,
+                report_filename=report_filename,
                 all_rows_by_run=all_runs_rows,  # passed for T5 premise×hop
             )
-            logger.info("Report written to %s/report.html", output_dir)
+            logger.info("Report written to %s", report_path)
         except Exception as e:
             logger.error("Reporter failed: %s", e, exc_info=True)
     else:

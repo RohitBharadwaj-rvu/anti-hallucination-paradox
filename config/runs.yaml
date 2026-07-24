@@ -1,24 +1,24 @@
 runs:
-  - name: nematron_ultra
-    target:
-      provider: nim
-      model_id: nvidia/nemotron-ultra-253b-v1   # REPLACE with exact NIM id you have
-    judge:
-      provider: lmstudio
-      model_id: qwen2.5-7b-instruct             # REPLACE with EXACT name shown in LM Studio server tab
-
-  - name: fw_model_A
+  - name: fw_glm_5p2
     target:
       provider: fireworks
-      model_id: accounts/fireworks/models/deepseek-v3   # REPLACE
+      model_id: accounts/fireworks/models/glm-5p2
     judge:
       provider: lmstudio
       model_id: qwen2.5-7b-instruct
 
-  - name: fw_model_B
+  - name: fw_kimi_k2p7_code
     target:
       provider: fireworks
-      model_id: accounts/fireworks/models/llama-v3p1-70b-instruct   # REPLACE
+      model_id: accounts/fireworks/models/kimi-k2p7-code
+    judge:
+      provider: lmstudio
+      model_id: qwen2.5-7b-instruct
+
+  - name: fw_minimax_m3
+    target:
+      provider: fireworks
+      model_id: accounts/fireworks/models/minimax-m3
     judge:
       provider: lmstudio
       model_id: qwen2.5-7b-instruct

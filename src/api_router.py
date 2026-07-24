@@ -26,6 +26,7 @@ from tenacity import (
 
 from src.utils import get_logger
 from src.env_loader import get_api_key, get_base_url, is_billed
+from src.thinking import strip_thinking, count_answer_tokens
 
 logger = get_logger("ahp.api_router")
 
@@ -396,7 +397,14 @@ class APIRouter:
     ) -> tuple[str, dict]:
         """
         Call the target model. Acquires target_semaphore + RPM gate.
-        Checks and updates budget. Returns (text, usage).
+        Checks and updates budget. Returns (answer_text, usage).
+
+        For thinking models that emit <think>…</think> traces, the returned
+        text is the stripped answer only.  The raw thinking trace and original
+        completion token count are preserved in the usage dict for audit:
+          usage["thinking_text"]         — extracted CoT reasoning
+          usage["raw_completion_tokens"] — API-reported completion tokens
+        Budget is charged only for estimated answer tokens.
         """
         provider = self._target_provider
         model_id = self._target_model_id
@@ -408,14 +416,34 @@ class APIRouter:
             rpm_gate.acquire()
             client = self._get_client(provider)
             t0 = time.monotonic()
-            text, usage = self._raw_call(client, provider, model_id, messages, self._max_tokens_target)
+            raw_text, usage = self._raw_call(client, provider, model_id, messages, self._max_tokens_target)
             elapsed = time.monotonic() - t0
 
         with self._latency_lock:
             self._target_latencies.append(elapsed)
 
-        self.budget.add(provider, usage.get("total_tokens", 0))
-        return text, usage
+        # Strip thinking traces (no-op for non-thinking models)
+        answer_text, thinking_text = strip_thinking(raw_text)
+
+        # Preserve originals for audit
+        raw_completion_tokens = usage.get("completion_tokens", 0)
+        usage["raw_completion_tokens"] = raw_completion_tokens
+        usage["thinking_text"] = thinking_text
+
+        # Budget: count only answer tokens, not CoT reasoning
+        if thinking_text:
+            answer_tokens = count_answer_tokens(raw_text, answer_text, raw_completion_tokens)
+            usage["completion_tokens"] = answer_tokens
+            usage["total_tokens"] = usage.get("prompt_tokens", 0) + answer_tokens
+            self.budget.add(provider, usage["total_tokens"])
+            logger.debug(
+                "Thinking model response: %d raw tokens -> %d answer tokens (thinking %d chars)",
+                raw_completion_tokens, answer_tokens, len(thinking_text),
+            )
+        else:
+            self.budget.add(provider, usage.get("total_tokens", 0))
+
+        return answer_text, usage
 
     # -----------------------------------------------------------------------
     # Public call — judge

@@ -18,3 +18,5 @@ Thumbs.db
 .idea/
 .vscode/
 *.ipynb_checkpoints/
+.env
+.env.*
