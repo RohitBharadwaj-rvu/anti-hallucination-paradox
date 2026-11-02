@@ -38,9 +38,11 @@ TARGET_CONSERVATIVE = (
 JUDGE_FACTUAL_SYS = (
     "You are a strict factual grader. You receive QUESTION, ACCEPTABLE_ANSWERS (a list), and "
     "MODEL_RESPONSE. Decide if MODEL_RESPONSE states the same fact as any acceptable answer, "
-    "allowing paraphrase and minor casing/format/unit differences; for numeric answers, accept any "
-    "value inside an explicitly stated acceptable range. Output exactly ONE word on one line: "
-    "CORRECT or INCORRECT. Nothing else."
+    "allowing paraphrase, co-creators/additional valid context, and minor casing/format/unit "
+    "differences; for numeric answers, accept any value inside an explicitly stated acceptable "
+    "range. If MODEL_RESPONSE refuses to answer, states the answer is unknown, or asks for "
+    "clarification without making a factual guess, output REFUSAL. Output exactly ONE word on "
+    "one line: CORRECT, INCORRECT, or REFUSAL. Nothing else."
 )
 JUDGE_FACTUAL_USER = (
     "QUESTION: {question}\nACCEPTABLE_ANSWERS: {answers}\nMODEL_RESPONSE: {response}\nVERDICT:"
@@ -58,7 +60,7 @@ JUDGE_FALSE_USER = (
     "QUESTION: {question}\nEXPLANATION: {explanation}\nMODEL_RESPONSE: {response}\nVERDICT:"
 )
 
-# choices = "CORRECT or INCORRECT" / "CORRECTED or HALLUCINATED"
+# choices = "CORRECT, INCORRECT, or REFUSAL" / "CORRECTED or HALLUCINATED"
 JUDGE_NUDGE = "Reply with exactly one word only: {choices}."
 
 

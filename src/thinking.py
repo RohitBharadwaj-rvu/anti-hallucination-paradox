@@ -1,29 +1,66 @@
 """
-src/thinking.py — Strip <think>…</think> reasoning traces from model responses.
+src/thinking.py — Strip <think>…</think> and <thought>…</thought> reasoning traces,
+as well as tagless truncated Chain-of-Thought dumps from reasoning models.
 
-Thinking models (DeepSeek-R1, Kimi-K2, GLM-5P2, etc.) emit chain-of-thought
-inside <think>...</think> tags before the final answer.  This module extracts
-the clean answer text and estimates answer-only token counts so the budget
-kill-switch is not inflated by reasoning tokens.
+Thinking models (DeepSeek-R1, Kimi-K2, GLM-5P2, Gemma-4, MiniMax-M3, etc.) emit
+chain-of-thought inside <think>...</think> or <thought>...</thought> tags before
+the final answer, or (on providers like Fireworks when max_tokens is hit before
+</think>) dump raw unclosed CoT into message.content without tags.
 """
 import re
 from src.utils import get_logger
 
 logger = get_logger("ahp.thinking")
 
-# Matches <think>…</think> blocks (DOTALL so '.' matches newlines).
-# Also handles whitespace variants like < think >, and common casing.
+# Matches closed <think>…</think> or <thought>…</thought> blocks.
 _THINK_BLOCK_RE = re.compile(
-    r"<\s*think\s*>.*?<\s*/\s*think\s*>",
+    r"<\s*(?:think|thought)\s*>.*?<\s*/\s*(?:think|thought)\s*>",
     re.DOTALL | re.IGNORECASE,
 )
 
-# Matches an *unclosed* <think> tag — everything from <think> to end of string.
-# This happens when max_tokens truncates mid-thinking.
-_THINK_UNCLOSED_RE = re.compile(
-    r"<\s*think\s*>.*",
+# Matches an unmatched closing </think> or </thought> (provider stripped opening tag).
+_THINK_UNMATCHED_CLOSE_RE = re.compile(
+    r"^(.*?)<\s*/\s*(?:think|thought)\s*>(.*)$",
     re.DOTALL | re.IGNORECASE,
 )
+
+# Matches an *unclosed* <think> or <thought> tag — everything from tag to end of string.
+_THINK_UNCLOSED_RE = re.compile(
+    r"<\s*(?:think|thought)\s*>.*",
+    re.DOTALL | re.IGNORECASE,
+)
+
+# Matches tagless unclosed Chain-of-Thought dumps (when Fireworks hits max_tokens
+# before emitting </think> and dumps the raw reasoning trace into content).
+_TAGLESS_COT_PREFIX_RE = re.compile(
+    r"^\s*(?:"
+    r"1\.\s+\*\*(?:Analyze|Identify)\b|"
+    r"We need (?:to )?answer\b|"
+    r"The user (?:is asking|asks)\b|"
+    r"Let['’]?s (?:analyze|parse|break down)\b"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def is_tagless_truncated_cot(text: str) -> bool:
+    """
+    Return True if `text` is a raw unclosed Chain-of-Thought dump without tags
+    (typical when a reasoning model hits max_tokens mid-thought on Fireworks).
+    """
+    if not text or len(text) < 1200:
+        return False
+    if _TAGLESS_COT_PREFIX_RE.search(text):
+        return True
+    # Also check for runaway multi-bullet reasoning (>2500 chars with multiple internal deliberation markers)
+    if len(text) > 2500:
+        markers = sum(
+            1 for m in ("*   Target:", "*   Constraint", "Let's check", "Wait,", "Need parse", "Need identify")
+            if m.lower() in text.lower()
+        )
+        if markers >= 2:
+            return True
+    return False
 
 
 def strip_thinking(text: str) -> tuple[str, str]:
@@ -33,41 +70,51 @@ def strip_thinking(text: str) -> tuple[str, str]:
     Returns (answer_text, thinking_text).
 
     Cases handled:
-      1. <think>CoT</think>Final answer   → ("Final answer", "CoT")
-      2. <think>CoT</think>                → ("", "CoT")        (answer after think is empty)
-      3. <think>CoT (truncated, no close)  → ("", "CoT...")      (unclosed think block)
-      4. No <think> tags at all            → (text, "")          (non-thinking model)
-      5. Multiple <think> blocks           → all extracted, answer is remainder
+      1. <think>CoT</think>Final answer      -> ("Final answer", "CoT")
+      2. CoT</think>Final answer             -> ("Final answer", "CoT")
+      3. <think>CoT</think>                  -> ("", "CoT")
+      4. <think>CoT (truncated, no close)    -> ("", "CoT...")
+      5. Tagless truncated CoT (>1200 chars) -> ("", "CoT...")
+      6. No thinking trace                   -> (text, "")
     """
     if not text:
         return ("", "")
 
-    # Collect all closed <think>...</think> blocks
+    # 1. Collect all closed <think>...</think> or <thought>...</thought> blocks
     closed_blocks = _THINK_BLOCK_RE.findall(text)
     if closed_blocks:
-        # Extract thinking content (strip the tags themselves)
         thinking_parts = []
         for block in closed_blocks:
-            inner = re.sub(r"<\s*/?\s*think\s*>", "", block, flags=re.IGNORECASE).strip()
+            inner = re.sub(r"<\s*/?\s*(?:think|thought)\s*>", "", block, flags=re.IGNORECASE).strip()
             if inner:
                 thinking_parts.append(inner)
         thinking_text = "\n\n".join(thinking_parts)
-
-        # Remove all think blocks from original to get the answer
         answer_text = _THINK_BLOCK_RE.sub("", text).strip()
         return (answer_text, thinking_text)
 
-    # Check for unclosed <think> (truncated mid-thinking)
+    # 2. Check for unmatched closing </think> or </thought>
+    close_match = _THINK_UNMATCHED_CLOSE_RE.match(text)
+    if close_match:
+        thinking_text = close_match.group(1).strip()
+        answer_text = close_match.group(2).strip()
+        return (answer_text, thinking_text)
+
+    # 3. Check for unclosed <think> or <thought> (truncated mid-thinking)
     unclosed_match = _THINK_UNCLOSED_RE.search(text)
     if unclosed_match:
-        # Everything from <think> onward is thinking; anything before is answer
         start = unclosed_match.start()
         answer_before = text[:start].strip()
         thinking_raw = unclosed_match.group(0)
-        thinking_text = re.sub(r"<\s*think\s*>", "", thinking_raw, count=1, flags=re.IGNORECASE).strip()
+        thinking_text = re.sub(
+            r"<\s*(?:think|thought)\s*>", "", thinking_raw, count=1, flags=re.IGNORECASE
+        ).strip()
         return (answer_before, thinking_text)
 
-    # No think tags at all — non-thinking model, return as-is
+    # 4. Check for tagless truncated CoT dump
+    if is_tagless_truncated_cot(text):
+        return ("", text.strip())
+
+    # 5. Normal non-thinking response
     return (text, "")
 
 
@@ -78,12 +125,6 @@ def count_answer_tokens(
 ) -> int:
     """
     Estimate answer-only token count using character-length ratio.
-
-    This avoids requiring a tokenizer dependency.  The approximation is:
-        answer_tokens ≈ total_completion_tokens × (len(answer) / len(full))
-
-    Returns at least 1 if answer_text is non-empty (avoids zero-token budget
-    entries for very short answers relative to long thinking traces).
     """
     if not full_text or total_completion_tokens == 0:
         return 0
@@ -92,4 +133,4 @@ def count_answer_tokens(
 
     ratio = len(answer_text) / len(full_text)
     estimated = int(total_completion_tokens * ratio)
-    return max(estimated, 1)  # at least 1 token if there is an answer
+    return max(estimated, 1)

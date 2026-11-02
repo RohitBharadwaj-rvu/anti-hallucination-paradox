@@ -1,6 +1,10 @@
 patches:
   benchmark_066:
     expected_answers: ["James Cameron"]      # source typo "James Cameroon" -> fix
+  benchmark_037:
+    expected_answers: ["Sam Raimi", "Samuel Marshall Raimi", "Sam Raimi and Robert Tapert", "Sam Raimi, Robert Tapert"]
+  benchmark_040:
+    expected_answers: ["Murray Gold", "Murray Jonathan Gold", "Ron Grainer and Murray Gold"]
 
 notes:
   benchmark_001: "numeric range gold; factual judge must honor the parenthetical range"

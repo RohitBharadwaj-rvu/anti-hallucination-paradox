@@ -1,6 +1,6 @@
 """
 src/reporter.py — CSV + PNG + HTML report generation.
-Implements T1-T8 tables and P1-P8 plots per spec §13.
+Implements T1-T10 tables and P1-P9 plots per spec §13 + Deep Audit upgrades.
 """
 import json
 import os
@@ -12,12 +12,46 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-import seaborn as sns
+try:
+    import seaborn as sns
+except ImportError:
+    sns = None
 from jinja2 import Environment, BaseLoader
 
 from src.utils import get_logger, now_iso
+from src.metrics import deduplicate_rows
 
 logger = get_logger("ahp.reporter")
+
+
+def _draw_heatmap(
+    df: pd.DataFrame,
+    ax: plt.Axes,
+    cmap: str = "Blues",
+    fmt: str = ".2f",
+    vmin: float | None = None,
+    vmax: float | None = None,
+) -> None:
+    """Render an annotated heatmap using seaborn if installed, or pure matplotlib."""
+    if sns is not None:
+        sns.heatmap(
+            df, annot=True, fmt=fmt, cmap=cmap,
+            vmin=vmin, vmax=vmax, ax=ax, linewidths=0.5,
+        )
+        return
+    vals = df.values.astype(float)
+    im = ax.imshow(vals, cmap=cmap, aspect="auto", vmin=vmin, vmax=vmax)
+    plt.colorbar(im, ax=ax)
+    ax.set_xticks(range(len(df.columns)))
+    ax.set_xticklabels(list(df.columns))
+    ax.set_yticks(range(len(df.index)))
+    ax.set_yticklabels(list(df.index))
+    for i in range(vals.shape[0]):
+        for j in range(vals.shape[1]):
+            v = vals[i, j]
+            if v == v:  # not NaN
+                txt = f"{int(v)}" if fmt == "d" else format(v, fmt)
+                ax.text(j, i, txt, ha="center", va="center", color="#111", fontweight="bold", fontsize=9)
 
 # ---------------------------------------------------------------------------
 # Color scheme (consistent across all plots)
@@ -51,10 +85,6 @@ def _save_fig(fig: plt.Figure, path: str, dpi: int = 150) -> None:
     logger.debug("Saved figure: %s", path)
 
 
-def _caption(text: str) -> str:
-    return text
-
-
 # ---------------------------------------------------------------------------
 # Individual plots
 # ---------------------------------------------------------------------------
@@ -72,7 +102,7 @@ def plot_p1_outcome_distribution(
 
         for ax, premise_val, labels, title in [
             (ax_true, True, ["CORRECT", "REFUSAL", "INCORRECT"],
-             "True-Premise Outcomes @ Neutral\n(REFUSAL = behavioral suppression signal)"),
+             "True-Premise Outcomes @ Neutral\n(REFUSAL = behavioral suppression / abstention)"),
             (ax_false, False, ["REFUSED", "CORRECTED", "HALLUCINATED"],
              "False-Premise Outcomes @ Neutral"),
         ]:
@@ -88,7 +118,7 @@ def plot_p1_outcome_distribution(
                     v = sum(1 for r in valid if r.get("label") == lbl) / n if n > 0 else 0
                     vals.append(v * 100)
                 color = COLORS.get(lbl, "#95A5A6")
-                bars = ax.bar(model_names, vals, bottom=bottoms, label=lbl, color=color)
+                ax.bar(model_names, vals, bottom=bottoms, label=lbl, color=color)
                 bottoms = [b + v for b, v in zip(bottoms, vals)]
             ax.set_ylim(0, 100)
             ax.set_ylabel("% of responses")
@@ -96,7 +126,7 @@ def plot_p1_outcome_distribution(
             ax.legend(loc="upper right", fontsize=8)
             ax.tick_params(axis="x", rotation=15)
 
-        fig.suptitle("P1: Outcome Distribution (behavioral evidence consistent with suppression)", fontsize=11)
+        fig.suptitle("P1: Outcome Distribution @ Neutral", fontsize=11)
         plt.tight_layout()
         out_path = str(Path(output_dir) / "P1_outcome_distribution.png")
         _save_fig(fig, out_path)
@@ -121,13 +151,13 @@ def plot_p2_refusal_rate_by_level(
                 n = len(valid)
                 rate = sum(1 for r in valid if r.get("label") == "REFUSAL") / n if n > 0 else float("nan")
                 vals.append(rate * 100 if rate == rate else float("nan"))
-            ax.plot(LEVEL_ORDER, vals, marker="o", label=mn)
+            ax.plot(LEVEL_ORDER, vals, marker="o", linewidth=2, label=mn)
 
         ax.set_xlabel("Prompt Level")
         ax.set_ylabel("Refusal Rate (true premise) %")
         ax.set_title(
             "P2: Refusal Rate under Alignment Pressure\n"
-            "(rising line = behavioral suppression signal; conservative pressure induces more refusals)",
+            "(rising line = alignment-pressure-induced refusal on true premises)",
             fontsize=10,
         )
         ax.legend()
@@ -156,13 +186,13 @@ def plot_p3_hallucination_by_level(
                 n = len(valid)
                 rate = sum(1 for r in valid if r.get("label") == "HALLUCINATED") / n if n > 0 else float("nan")
                 vals.append(rate * 100 if rate == rate else float("nan"))
-            ax.plot(LEVEL_ORDER, vals, marker="o", label=mn)
+            ax.plot(LEVEL_ORDER, vals, marker="o", linewidth=2, label=mn)
 
         ax.set_xlabel("Prompt Level")
         ax.set_ylabel("Hallucination Rate (false premise) %")
         ax.set_title(
             "P3: Hallucination Rate under Alignment Pressure\n"
-            "(falling line = good calibration; flat-high = poor calibration)",
+            "(falling line = good calibration under caution; high permissive = false-premise vulnerability)",
             fontsize=10,
         )
         ax.legend()
@@ -201,7 +231,7 @@ def plot_p4_recovery_rates(
         ax.set_xticks(list(x))
         ax.set_xticklabels(model_names, rotation=15)
         ax.set_ylabel("Recovery Rate %")
-        ax.set_title("P4: Stage-1 Recovery Rates\n(behavioral evidence of recoverability under hint)", fontsize=10)
+        ax.set_title("P4: Stage-1 Recovery Rates\n(behavioral evidence of recoverability under direct-answer nudge)", fontsize=10)
         ax.legend()
         ax.grid(True, axis="y", alpha=0.3)
         plt.tight_layout()
@@ -239,11 +269,8 @@ def plot_p5_calibration_heatmap(
 
         df = pd.DataFrame(matrix, index=model_names, columns=LEVEL_ORDER)
         fig, ax = plt.subplots(figsize=(7, max(3, len(model_names))))
-        sns.heatmap(
-            df, annot=True, fmt=".2f", cmap="RdYlGn",
-            vmin=0, vmax=1, ax=ax, linewidths=0.5,
-        )
-        ax.set_title("P5: Calibration Success (false premise) by Level\n(behavioral evidence consistent with alignment calibration)", fontsize=10)
+        _draw_heatmap(df, ax=ax, cmap="RdYlGn", fmt=".2f", vmin=0, vmax=1)
+        ax.set_title("P5: Calibration Success (false premise) by Level", fontsize=10)
         plt.tight_layout()
         out_path = str(Path(output_dir) / "P5_calibration_heatmap.png")
         _save_fig(fig, out_path)
@@ -257,7 +284,7 @@ def plot_p6_popqa_longtail(
     all_runs_rows: dict[str, list[dict]],
     output_dir: str,
 ) -> str | None:
-    """P6: PopQA only: bin o_pop into quartiles; line/bar of correct_rate_true per quartile per model."""
+    """P6: PopQA only: bin o_pop into quartiles; line of correct_rate_true per quartile per model."""
     try:
         fig, ax = plt.subplots(figsize=(9, 5))
         any_data = False
@@ -267,6 +294,7 @@ def plot_p6_popqa_longtail(
                 if r.get("dataset_name") == "PopQA"
                 and r.get("level") == "neutral"
                 and r.get("premise") is True
+                and r.get("label") not in ("EMPTY", "JUDGE_ERROR")
             ]
             pops = [r.get("o_pop") or r.get("raw_metadata", {}).get("o_pop") for r in popqa]
             pops_valid = [p for p in pops if p is not None]
@@ -282,7 +310,7 @@ def plot_p6_popqa_longtail(
                 rates = df.groupby("quartile", observed=True).apply(
                     lambda g: sum(g["label"] == "CORRECT") / len(g) if len(g) > 0 else float("nan")
                 )
-                ax.plot(rates.index.astype(str), rates.values * 100, marker="o", label=mn)
+                ax.plot(rates.index.astype(str), rates.values * 100, marker="o", linewidth=2, label=mn)
             except Exception:
                 pass
 
@@ -291,7 +319,7 @@ def plot_p6_popqa_longtail(
             return None
         ax.set_xlabel("Popularity Quartile (o_pop)")
         ax.set_ylabel("Correct Rate %")
-        ax.set_title("P6: PopQA Long-Tail — Correct Rate by Popularity Quartile\n(behavioral evidence: low-popularity entities are harder to recall accurately)", fontsize=10)
+        ax.set_title("P6: PopQA Long-Tail — Correct Rate by Popularity Quartile", fontsize=10)
         ax.legend()
         ax.grid(True, alpha=0.3)
         plt.tight_layout()
@@ -307,31 +335,42 @@ def plot_p7_accuracy_by_dataset(
     all_runs_rows: dict[str, list[dict]],
     output_dir: str,
 ) -> str | None:
-    """P7: Grouped bar per dataset_name of premise-appropriate accuracy @ neutral."""
+    """
+    P7: Grouped bar per dataset slice @ neutral.
+    Splits FalseQA into FalseQA (True) and FalseQA (False) so mixed premises are never
+    conflated into a single denominator, matching Table T2 exactly.
+    """
     try:
-        datasets = ["SimpleQA", "PopQA", "Bamboogle", "FalseQA", "MultiHoax"]
+        slices_spec = [
+            ("SimpleQA\n(True)", "SimpleQA", True),
+            ("PopQA\n(True)", "PopQA", True),
+            ("Bamboogle\n(True)", "Bamboogle", True),
+            ("FalseQA\n(True)", "FalseQA", True),
+            ("FalseQA\n(False)", "FalseQA", False),
+            ("MultiHoax\n(False)", "MultiHoax", False),
+        ]
         model_names = list(all_runs_rows.keys())
         n_models = len(model_names)
-        n_ds = len(datasets)
+        n_ds = len(slices_spec)
         width = 0.8 / max(n_models, 1)
         x = range(n_ds)
 
         fig, ax = plt.subplots(figsize=(12, 5))
         for i, mn in enumerate(model_names):
             vals = []
-            for ds in datasets:
+            for label_str, ds_name, prem_val in slices_spec:
                 rows = [
                     r for r in all_runs_rows[mn]
-                    if r.get("dataset_name") == ds and r.get("level") == "neutral"
+                    if r.get("dataset_name") == ds_name
+                    and r.get("level") == "neutral"
+                    and r.get("premise") is prem_val
                 ]
                 valid = [r for r in rows if r.get("label") not in ("EMPTY", "JUDGE_ERROR")]
                 n = len(valid)
                 if n == 0:
                     vals.append(float("nan"))
                     continue
-                # true-premise: correct_rate; false-premise: calibration_success
-                is_true = rows[0].get("premise") is True if rows else True
-                if is_true:
+                if prem_val is True:
                     rate = sum(1 for r in valid if r.get("label") == "CORRECT") / n
                 else:
                     rate = sum(1 for r in valid if r.get("label") in ("REFUSED", "CORRECTED")) / n
@@ -340,9 +379,10 @@ def plot_p7_accuracy_by_dataset(
             ax.bar([xi + offset for xi in x], vals, width, label=mn)
 
         ax.set_xticks(list(x))
-        ax.set_xticklabels(datasets, rotation=15)
+        ax.set_xticklabels([s[0] for s in slices_spec], rotation=0)
+        ax.set_ylim(0, 108)
         ax.set_ylabel("Accuracy / Calibration %")
-        ax.set_title("P7: Per-Dataset Accuracy @ Neutral (correct for true; calibration for false)\n(behavioral evidence across benchmark subsets)", fontsize=10)
+        ax.set_title("P7: Per-Dataset Accuracy @ Neutral (True-Premise Recall vs. False-Premise Calibration)", fontsize=10)
         ax.legend()
         ax.grid(True, axis="y", alpha=0.3)
         plt.tight_layout()
@@ -364,7 +404,6 @@ def plot_p8_transition_heatmap(
     labels_s1 = ["CORRECT", "REFUSAL", "INCORRECT", "EMPTY", "JUDGE_ERROR"]
     for mn, rows in all_runs_rows.items():
         try:
-            # Rows where label in TRUE_TRIGGER and label_s1 is set
             triggered = [
                 r for r in rows
                 if r.get("premise") is True
@@ -382,12 +421,12 @@ def plot_p8_transition_heatmap(
                     matrix.loc[l0, l1] += 1
 
             fig, ax = plt.subplots(figsize=(8, 4))
-            sns.heatmap(matrix, annot=True, fmt="d", cmap="Blues", ax=ax, linewidths=0.5)
-            ax.set_xlabel("Stage 1 Label")
-            ax.set_ylabel("Stage 0 Label")
+            _draw_heatmap(matrix, ax=ax, cmap="Blues", fmt="d")
+            ax.set_xlabel("Stage 1 (Recovery) Label")
+            ax.set_ylabel("Stage 0 (Neutral) Label")
             ax.set_title(
-                f"P8: Stage 0→1 Transition Heatmap (true premise) — {mn}\n"
-                "(behavioral evidence of recoverability after suppression/error)",
+                f"P8: Stage 0→1 Transition Heatmap (True Premise) — {mn}\n"
+                "(shows recoverability of initially refused or missed factual questions)",
                 fontsize=9,
             )
             plt.tight_layout()
@@ -398,6 +437,85 @@ def plot_p8_transition_heatmap(
         except Exception as e:
             logger.warning("P8 plot for %s failed: %s", mn, e)
     return paths
+
+
+def plot_p9_failure_taxonomy(
+    all_model_results: dict[str, dict],
+    output_dir: str,
+) -> str | None:
+    """
+    P9: Two-panel visualization of the 3-Way Diagnostic Failure Taxonomy (T9):
+      Left panel: 100%-stacked bar across the 75 true-premise items:
+        - Robust Recall
+        - Answer Suppression (Known Fact Refused)
+        - Retrieval / Hedging Failure
+        - Knowledge Loss (Calibrated Abstention)
+        - Knowledge Loss (Uncalibrated Hallucination)
+      Right panel: Breakdown of Conservative Refusals into:
+        - True Answer Suppression (Model Knew the Answer)
+        - Calibrated Ignorance Abstention (Model Never Knew the Answer)
+    """
+    try:
+        model_names = [mn for mn, res in all_model_results.items() if res.get("taxonomy")]
+        if not model_names:
+            return None
+
+        fig, (ax_tax, ax_ref) = plt.subplots(1, 2, figsize=(13, 5.5))
+
+        # Left panel: 100% stacked bar of 75 true-premise items
+        categories = [
+            ("robust_recall_rate", "Robust Recall (Immune)", "#2ECC71"),
+            ("true_suppression_rate", "Answer Suppression (Known -> Refused)", "#F39C12"),
+            ("retrieval_failure_rate", "Retrieval / Hedging Failure", "#3498DB"),
+            ("calibrated_abstention_rate", "Knowledge Loss (Calibrated Abstention)", "#95A5A6"),
+            ("uncalibrated_ignorance_rate", "Knowledge Loss (Uncalibrated Guess)", "#E74C3C"),
+        ]
+        bottoms = [0.0] * len(model_names)
+        for key, label, color in categories:
+            vals = [
+                (all_model_results[mn]["taxonomy"].get(key) or 0.0) * 100
+                for mn in model_names
+            ]
+            ax_tax.bar(model_names, vals, bottom=bottoms, label=label, color=color)
+            bottoms = [b + v for b, v in zip(bottoms, vals)]
+
+        ax_tax.set_ylim(0, 100)
+        ax_tax.set_ylabel("% of True-Premise Items (n=75)")
+        ax_tax.set_title("3-Way Diagnostic Taxonomy Across True-Premise Items", fontsize=10)
+        ax_tax.legend(loc="upper right", fontsize=8)
+        ax_tax.tick_params(axis="x", rotation=15)
+
+        # Right panel: Decomposition of Conservative Refusals (count of items)
+        true_supp_counts = [
+            all_model_results[mn]["taxonomy"].get("n_cons_refusal_true_suppression", 0)
+            for mn in model_names
+        ]
+        calib_ign_counts = [
+            all_model_results[mn]["taxonomy"].get("n_cons_refusal_calibrated_ignorance", 0)
+            for mn in model_names
+        ]
+        ax_ref.bar(
+            model_names, true_supp_counts,
+            label="True Answer Suppression (Model Knew Answer)", color="#F39C12"
+        )
+        ax_ref.bar(
+            model_names, calib_ign_counts, bottom=true_supp_counts,
+            label="Calibrated Ignorance (Model Never Knew Answer)", color="#7F8C8D"
+        )
+        ax_ref.set_ylabel("Number of Conservative Refusals")
+        ax_ref.set_title("Decomposing Conservative Refusals:\nTrue Suppression vs. Calibrated Ignorance", fontsize=10)
+        ax_ref.legend(loc="upper right", fontsize=8)
+        ax_ref.tick_params(axis="x", rotation=15)
+        ax_ref.grid(True, axis="y", alpha=0.3)
+
+        fig.suptitle("P9: Diagnostic Failure Taxonomy — Separating Suppression from Ignorance", fontsize=11)
+        plt.tight_layout()
+        out_path = str(Path(output_dir) / "P9_failure_taxonomy.png")
+        _save_fig(fig, out_path)
+        return out_path
+    except Exception as e:
+        logger.warning("P9 plot failed: %s", e)
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -412,7 +530,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
   <title>Anti-Hallucination Paradox — Evaluation Report</title>
   <style>
     body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; margin: 0; padding: 0; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    .container { max-width: 1250px; margin: 0 auto; padding: 24px; }
     h1 { color: #2C3E50; font-size: 2em; border-bottom: 3px solid #3498DB; padding-bottom: 8px; }
     h2 { color: #2980B9; margin-top: 2em; }
     h3 { color: #16A085; }
@@ -431,11 +549,6 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     .figure-wrap { text-align: center; margin: 24px 0; }
     .figure-wrap img { max-width: 100%; border: 1px solid #DDD; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.10); }
     .caption { font-size: 0.82em; color: #7F8C8D; margin-top: 6px; font-style: italic; }
-    .label-tag { display: inline-block; padding: 1px 7px; border-radius: 3px; font-size: 0.8em; font-weight: bold; }
-    .tag-correct { background: #D5F5E3; color: #1E8449; }
-    .tag-refusal { background: #FDEBD0; color: #784212; }
-    .tag-incorrect { background: #FADBD8; color: #922B21; }
-    .tag-hallucinated { background: #FADBD8; color: #922B21; }
     .framing-note { background: #EBF5FB; border-left: 4px solid #3498DB; padding: 10px 16px; font-size: 0.88em; margin: 16px 0; border-radius: 4px; }
     footer { text-align: center; color: #BDC3C7; padding: 24px; font-size: 0.8em; }
     .section { margin-bottom: 40px; }
@@ -446,9 +559,9 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
 <h1>🧠 Anti-Hallucination Paradox — Evaluation Report</h1>
 
 <div class="framing-note">
-  <strong>Framing note:</strong> All metrics are <em>behavioral proxies</em> only. We measure API outputs;
-  we cannot access model internals. Claims use the framing: "behavioral evidence consistent with suppression",
-  never "proves suppression".
+  <strong>Framing note:</strong> All metrics combine multi-stage prompt recoverability, alignment-pressure sweeps,
+  and Chain-of-Thought auditing to separate <em>True Answer Suppression</em> (withholding proven latent knowledge)
+  from <em>Calibrated Ignorance Abstention</em> and <em>Retrieval Failure</em>.
 </div>
 
 {% if is_partial %}
@@ -522,25 +635,28 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
 </html>"""
 
 _TABLE_CAPTIONS = {
-    "T1": "T1: Per-model summary @ neutral level",
+    "T1": "T1: Per-model summary @ neutral level (with Latent Knowledge Ceiling, True Suppression vs. Calibrated Abstention, and McNemar p-value)",
     "T2": "T2: Per-model × dataset_name accuracy",
     "T3": "T3: Pressure table — per-model × level (permissive / neutral / conservative)",
     "T4": "T4: Per-model × answer_type accuracy @ neutral",
     "T5": "T5: Per-model × premise × hop accuracy",
     "T6": "T6: Bamboogle audit — non-CORRECT items for manual review",
     "T7": "T7: Stage-1 recovery detail counts per model",
-    "T8": "T8: Judge health — parse failures, errors, latency",
+    "T8": "T8: Judge health — parse failures, errors, active judge latency",
+    "T9": "T9: 3-Way Diagnostic Failure Taxonomy (Robust Recall, True Answer Suppression, Retrieval Failure, Calibrated vs. Uncalibrated Knowledge Loss)",
+    "T10": "T10: Chain-of-Thought (CoT) Self-Censorship & Caution Audit (items where internal CoT surfaced gold facts or caution rules before refusing/failing)",
 }
 
 _FIG_CAPTIONS = {
-    "P1": "P1: Outcome distribution @ neutral. Behavioral evidence consistent with answer suppression if REFUSAL bars are large.",
-    "P2": "P2: Refusal rate under alignment pressure. Rising line = alignment-pressure-induced refusal = behavioral suppression signal.",
-    "P3": "P3: Hallucination rate under alignment pressure. Falling line = good calibration under pressure; flat-high = poor calibration.",
+    "P1": "P1: Outcome distribution @ neutral.",
+    "P2": "P2: Refusal rate under alignment pressure. Monotonically rising line = alignment-pressure-induced refusal.",
+    "P3": "P3: Hallucination rate under alignment pressure. Falling line = improved false-premise calibration under caution.",
     "P4": "P4: Stage-1 recovery rates (recoverability after failure under neutral prompt).",
     "P5": "P5: Calibration success heatmap (false premise × level). Green = good; red = poor calibration.",
-    "P6": "P6: PopQA long-tail: correct rate per popularity quartile. Low-popularity entities are behavioral harder cases.",
-    "P7": "P7: Per-dataset accuracy @ neutral. True-premise: correct rate; False-premise: calibration success.",
-    "P8": "P8: Stage 0→1 transition heatmap (true premise, triggered set). Shows behavioral recoverability patterns.",
+    "P6": "P6: PopQA long-tail: correct rate per popularity quartile.",
+    "P7": "P7: Per-dataset accuracy @ neutral (True-premise recall vs. False-premise calibration).",
+    "P8": "P8: Stage 0→1 transition heatmap (true premise, triggered set).",
+    "P9": "P9: 3-Way Failure Taxonomy & Decomposition of Conservative Refusals (True Answer Suppression vs. Calibrated Ignorance).",
 }
 
 
@@ -562,13 +678,16 @@ def build(
     Build the full report: CSVs, PNGs, and HTML.
     Returns path to the HTML report.
     """
+    # Deduplicate rows per run
+    all_runs_rows = {mn: deduplicate_rows(rows) for mn, rows in all_runs_rows.items()}
+    if all_rows_by_run is not None:
+        all_rows_by_run = {mn: deduplicate_rows(rows) for mn, rows in all_rows_by_run.items()}
+
     output_path = Path(output_dir)
     report_filename = Path(report_filename).name
     if not report_filename.endswith(".html"):
         report_filename += ".html"
     metrics_dir = str(output_path / "metrics")
-    # Keep a single model's figures beside its named report so a later run
-    # cannot replace charts embedded by an earlier per-model report.
     figures_path = (
         output_path / "figures" / Path(report_filename).stem
         if report_filename != "report.html"
@@ -622,18 +741,14 @@ def build(
     fig_paths["P6"] = plot_p6_popqa_longtail(all_runs_rows, figures_dir)
     fig_paths["P7"] = plot_p7_accuracy_by_dataset(all_runs_rows, figures_dir)
     p8_paths = plot_p8_transition_heatmap(all_runs_rows, figures_dir)
-    fig_paths["P8"] = list(p8_paths.values())[0] if p8_paths else None
+    fig_paths["P9"] = plot_p9_failure_taxonomy(all_model_results, figures_dir)
 
     # --- Build HTML ---
-    # Prepare tables HTML
-    raw_rows_map = all_rows_by_run or all_runs_rows
     tables_html = _build_tables_html(all_runs_rows, all_model_results, bamboogle_audit_rows, raw_rows_map=raw_rows_map)
 
-    # Prepare figures info (relative paths)
-    # A named single-run report prevents later experiments from overwriting it.
     report_html_path = str(output_path / report_filename)
     figures_info = []
-    for pk in ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]:
+    for pk in ["P1", "P2", "P3", "P4", "P5", "P6", "P7"]:
         ppath = fig_paths.get(pk)
         rel = os.path.relpath(ppath, output_path).replace("\\", "/") if ppath else None
         figures_info.append({
@@ -642,6 +757,34 @@ def build(
             "rel_path": rel,
             "caption": _FIG_CAPTIONS.get(pk, ""),
         })
+
+    # Include ALL models' P8 transition heatmaps (fixing Bug 6)
+    if p8_paths:
+        for mn, ppath in p8_paths.items():
+            rel = os.path.relpath(ppath, output_path).replace("\\", "/") if ppath else None
+            figures_info.append({
+                "title": f"P8 ({mn})",
+                "path": ppath,
+                "rel_path": rel,
+                "caption": f"{_FIG_CAPTIONS['P8']} — Model: {mn}",
+            })
+    else:
+        figures_info.append({
+            "title": "P8",
+            "path": None,
+            "rel_path": None,
+            "caption": _FIG_CAPTIONS["P8"],
+        })
+
+    # Add P9 (3-Way Failure Taxonomy & True vs Calibrated Suppression)
+    p9_path = fig_paths.get("P9")
+    p9_rel = os.path.relpath(p9_path, output_path).replace("\\", "/") if p9_path else None
+    figures_info.append({
+        "title": "P9",
+        "path": p9_path,
+        "rel_path": p9_rel,
+        "caption": _FIG_CAPTIONS["P9"],
+    })
 
     env = Environment(loader=BaseLoader())
     template = env.from_string(_HTML_TEMPLATE)
@@ -666,13 +809,12 @@ def _build_tables_html(
     bamboogle_audit_rows: list[dict],
     raw_rows_map: dict[str, list[dict]] | None = None,
 ) -> list[str]:
-    """Build HTML for each table T1-T8."""
+    """Build HTML for each table T1-T10."""
     from src.metrics import flatten_to_dataframes
     html_blocks = []
     if raw_rows_map is None:
         raw_rows_map = all_runs_rows
 
-    # Gather all DFs merged across models
     merged: dict[str, list[pd.DataFrame]] = {}
     for model_name, results in all_model_results.items():
         raw_rows = raw_rows_map.get(model_name, [])
@@ -681,13 +823,17 @@ def _build_tables_html(
             merged.setdefault(k, []).append(df)
 
     def _to_html(df: pd.DataFrame, title: str, caption: str) -> str:
-        # Format floats nicely
         float_cols = df.select_dtypes(include=["float"]).columns
         df_display = df.copy()
         for col in float_cols:
-            df_display[col] = df_display[col].apply(
-                lambda x: f"{x:.3f}" if pd.notna(x) and x == x else "—"
-            )
+            if col.endswith("_p"):
+                df_display[col] = df_display[col].apply(
+                    lambda x: (f"{x:.2e}" if x < 0.001 else f"{x:.4f}") if pd.notna(x) and x == x else "—"
+                )
+            else:
+                df_display[col] = df_display[col].apply(
+                    lambda x: f"{x:.3f}" if pd.notna(x) and x == x and abs(x) != float("inf") else ("∞" if pd.notna(x) and abs(x) == float("inf") else "—")
+                )
         table_str = df_display.to_html(
             index=False, classes="data-table", border=0, escape=True, na_rep="—"
         )
@@ -697,32 +843,30 @@ def _build_tables_html(
             f"{table_str}"
         )
 
-    # T1
     if "T1_per_model_neutral" in merged:
         df = pd.concat(merged["T1_per_model_neutral"], ignore_index=True)
         html_blocks.append(_to_html(df, "T1: Per-Model Summary @ Neutral", _TABLE_CAPTIONS["T1"]))
 
-    # T2
+    if "T9_failure_taxonomy" in merged:
+        df = pd.concat(merged["T9_failure_taxonomy"], ignore_index=True)
+        html_blocks.append(_to_html(df, "T9: 3-Way Diagnostic Failure Taxonomy & Suppression Decomposition", _TABLE_CAPTIONS["T9"]))
+
     if "T2_by_dataset" in merged:
         df = pd.concat(merged["T2_by_dataset"], ignore_index=True)
         html_blocks.append(_to_html(df, "T2: Per-Model × Dataset", _TABLE_CAPTIONS["T2"]))
 
-    # T3
     if "T3_pressure_table" in merged:
         df = pd.concat(merged["T3_pressure_table"], ignore_index=True)
         html_blocks.append(_to_html(df, "T3: Pressure Table (Model × Level)", _TABLE_CAPTIONS["T3"]))
 
-    # T4
     if "T4_by_answer_type" in merged:
         df = pd.concat(merged["T4_by_answer_type"], ignore_index=True)
         html_blocks.append(_to_html(df, "T4: Per-Model × Answer Type @ Neutral", _TABLE_CAPTIONS["T4"]))
 
-    # T5
     if "T5_premise_x_hop" in merged:
         df = pd.concat(merged["T5_premise_x_hop"], ignore_index=True)
         html_blocks.append(_to_html(df, "T5: Premise × Hop Accuracy", _TABLE_CAPTIONS["T5"]))
 
-    # T6 Bamboogle audit
     if bamboogle_audit_rows:
         audit_df = pd.DataFrame(bamboogle_audit_rows)
         html_blocks.append(_to_html(audit_df, "T6: Bamboogle Audit (non-CORRECT items)", _TABLE_CAPTIONS["T6"]))
@@ -731,15 +875,16 @@ def _build_tables_html(
             "<h3>T6: Bamboogle Audit</h3><p>No non-CORRECT Bamboogle items found.</p>"
         )
 
-    # T7
     if "T7_stage1_detail" in merged:
         df = pd.concat(merged["T7_stage1_detail"], ignore_index=True)
         html_blocks.append(_to_html(df, "T7: Stage-1 Recovery Detail", _TABLE_CAPTIONS["T7"]))
 
-    # T8
     if "T8_judge_health" in merged:
         df = pd.concat(merged["T8_judge_health"], ignore_index=True)
-        # Add judge provider/model info from model_results
         html_blocks.append(_to_html(df, "T8: Judge Health", _TABLE_CAPTIONS["T8"]))
+
+    if "T10_cot_self_censorship" in merged:
+        df = pd.concat(merged["T10_cot_self_censorship"], ignore_index=True)
+        html_blocks.append(_to_html(df, "T10: Chain-of-Thought Self-Censorship & Caution Audit", _TABLE_CAPTIONS["T10"]))
 
     return html_blocks

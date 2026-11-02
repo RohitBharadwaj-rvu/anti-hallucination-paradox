@@ -7,6 +7,8 @@ Implements:
   - Auto-resolve model ID for lmstudio on 404/400
   - Tenacity retry on status codes + timeout
   - ProviderBudget token kill-switch (cloud only)
+  - Reasoning trace extraction (both API reasoning_content and <think>/<thought>/tagless CoT)
+  - Automatic anti-overthinking retry if a reasoning model truncates mid-CoT
 """
 import asyncio
 import threading
@@ -186,8 +188,8 @@ class APIRouter:
         self._temperature: float = decoding.get("temperature", 0.0)
         self._temperature_fallback: float = decoding.get("temperature_fallback", 0.1)
         self._seed: int = decoding.get("seed", 42)
-        self._max_tokens_target: int = decoding.get("max_tokens_target", 128)
-        self._max_tokens_judge: int = decoding.get("max_tokens_judge", 8)
+        self._max_tokens_target: int = decoding.get("max_tokens_target", 8192)
+        self._max_tokens_judge: int = decoding.get("max_tokens_judge", 256)
         self._top_p: float = decoding.get("top_p", 1.0)
 
         # Judge latency tracking
@@ -328,7 +330,7 @@ class APIRouter:
     ) -> tuple[str, dict]:
         """
         Make one API call with retry. Returns (text, usage_dict).
-        Handles temperature=0.0 fallback and seed swallowing.
+        Handles temperature=0.0 fallback, seed swallowing, and reasoning_content capture.
         """
         attempts = self._retry_attempts
 
@@ -340,7 +342,6 @@ class APIRouter:
                 "max_tokens": max_tokens,
                 "top_p": self._top_p,
             }
-            # Try adding seed; drop if rejected
             try:
                 return client.chat.completions.create(**kwargs, seed=self._seed)
             except (BadRequestError, openai.APIStatusError) as e:
@@ -355,23 +356,33 @@ class APIRouter:
         for attempt in range(attempts):
             try:
                 completion = _do_call(temperature)
-                text = (completion.choices[0].message.content or "").strip()
+                msg = completion.choices[0].message
+                text = (msg.content or "").strip()
+                # Extract provider-separated reasoning_content if present (Fireworks / DeepSeek / LM Studio)
+                extra = getattr(msg, "model_extra", None) or {}
+                api_reasoning = (
+                    getattr(msg, "reasoning_content", None)
+                    or getattr(msg, "reasoning", None)
+                    or extra.get("reasoning_content")
+                    or extra.get("reasoning")
+                    or ""
+                ).strip()
                 usage_obj = completion.usage
                 usage = {
                     "prompt_tokens": getattr(usage_obj, "prompt_tokens", 0) or 0,
                     "completion_tokens": getattr(usage_obj, "completion_tokens", 0) or 0,
                     "total_tokens": getattr(usage_obj, "total_tokens", 0) or 0,
+                    "api_reasoning_content": api_reasoning,
                 }
                 return text, usage
 
             except BadRequestError as e:
-                # Temperature 0.0 rejected -> fallback once
                 if temperature == 0.0 and ("temperature" in str(e).lower() or "invalid" in str(e).lower()):
                     logger.debug("Temperature 0.0 rejected by %s; retrying with %.1f", provider, self._temperature_fallback)
                     temperature = self._temperature_fallback
                     last_exc = e
                     continue
-                raise  # Other bad requests are not retried
+                raise
 
             except Exception as e:
                 if self._should_retry(e):
@@ -399,47 +410,70 @@ class APIRouter:
         Call the target model. Acquires target_semaphore + RPM gate.
         Checks and updates budget. Returns (answer_text, usage).
 
-        For thinking models that emit <think>…</think> traces, the returned
-        text is the stripped answer only.  The raw thinking trace and original
-        completion token count are preserved in the usage dict for audit:
-          usage["thinking_text"]         — extracted CoT reasoning
-          usage["raw_completion_tokens"] — API-reported completion tokens
-        Budget is charged only for estimated answer tokens.
+        Separates thinking traces (both API `reasoning_content` and inline `<think>` /
+        tagless truncated CoT) from the final answer. If the model truncated mid-CoT
+        and produced an empty answer, retries once with a direct conciseness instruction.
         """
         provider = self._target_provider
         model_id = self._target_model_id
 
         self.budget.check(provider)
 
-        rpm_gate = self._rpm_gates.get(provider, RpmGate(0))
-        with self._target_semaphore:
-            rpm_gate.acquire()
-            client = self._get_client(provider)
-            t0 = time.monotonic()
-            raw_text, usage = self._raw_call(client, provider, model_id, messages, self._max_tokens_target)
-            elapsed = time.monotonic() - t0
+        def _invoke(msgs: list[dict]) -> tuple[str, str, dict]:
+            rpm_gate = self._rpm_gates.get(provider, RpmGate(0))
+            with self._target_semaphore:
+                rpm_gate.acquire()
+                client = self._get_client(provider)
+                t0 = time.monotonic()
+                r_text, u_dict = self._raw_call(client, provider, model_id, msgs, self._max_tokens_target)
+                elapsed = time.monotonic() - t0
+            with self._latency_lock:
+                self._target_latencies.append(elapsed)
 
-        with self._latency_lock:
-            self._target_latencies.append(elapsed)
+            ans_txt, inline_think = strip_thinking(r_text)
+            api_think = u_dict.pop("api_reasoning_content", "")
+            combined_think = "\n\n".join(p for p in (api_think, inline_think) if p).strip()
+            return r_text, ans_txt, {**u_dict, "thinking_text": combined_think}
 
-        # Strip thinking traces (no-op for non-thinking models)
-        answer_text, thinking_text = strip_thinking(raw_text)
+        raw_text, answer_text, usage = _invoke(messages)
 
-        # Preserve originals for audit
+        # If reasoning model truncated mid-thought (answer_text is empty, thinking_text non-empty),
+        # retry once with an explicit anti-overthinking instruction to get a clean final answer.
+        if not answer_text.strip() and usage.get("thinking_text"):
+            logger.info("Target truncated mid-CoT without final answer; retrying with concise instruction.")
+            retry_msgs = [
+                messages[0],
+                {
+                    "role": "user",
+                    "content": (
+                        messages[-1]["content"]
+                        + "\n\n[IMPORTANT: Do not overthink. Output your final concise answer immediately in a few words.]"
+                    ),
+                },
+            ]
+            raw_text2, answer_text2, usage2 = _invoke(retry_msgs)
+            if answer_text2.strip():
+                # Keep original thinking trace if second call had none, and sum token usage
+                kept_think = usage2.get("thinking_text") or usage.get("thinking_text", "")
+                raw_text = raw_text2
+                answer_text = answer_text2
+                usage = {
+                    "prompt_tokens": usage.get("prompt_tokens", 0) + usage2.get("prompt_tokens", 0),
+                    "completion_tokens": usage2.get("completion_tokens", 0),
+                    "total_tokens": usage.get("total_tokens", 0) + usage2.get("total_tokens", 0),
+                    "thinking_text": kept_think,
+                }
+
         raw_completion_tokens = usage.get("completion_tokens", 0)
         usage["raw_completion_tokens"] = raw_completion_tokens
-        usage["thinking_text"] = thinking_text
+        thinking_text = usage.get("thinking_text", "")
 
-        # Budget: count only answer tokens, not CoT reasoning
-        if thinking_text:
-            answer_tokens = count_answer_tokens(raw_text, answer_text, raw_completion_tokens)
+        if thinking_text and raw_text:
+            full_combined = f"{thinking_text}\n{answer_text}"
+            answer_tokens = count_answer_tokens(full_combined, answer_text, raw_completion_tokens)
             usage["completion_tokens"] = answer_tokens
             usage["total_tokens"] = usage.get("prompt_tokens", 0) + answer_tokens
             self.budget.add(provider, usage["total_tokens"])
-            logger.debug(
-                "Thinking model response: %d raw tokens -> %d answer tokens (thinking %d chars)",
-                raw_completion_tokens, answer_tokens, len(thinking_text),
-            )
         else:
             self.budget.add(provider, usage.get("total_tokens", 0))
 
@@ -456,6 +490,7 @@ class APIRouter:
     ) -> tuple[str, dict, float]:
         """
         Call the judge model. Acquires judge_semaphore. Handles auto-resolve on 404.
+        Strips any <think>/<thought> reasoning traces before returning the verdict text.
         Returns (text, usage, latency_ms) — 3-tuple; latency_ms is per-call wall time.
         """
         provider = self._judge_provider
@@ -467,7 +502,6 @@ class APIRouter:
             try:
                 text, usage = self._raw_call(client, provider, model_id, messages, self._max_tokens_judge)
             except openai.APIStatusError as e:
-                # Auto-resolve if 404/400 (model not found) for lmstudio
                 if (
                     provider == "lmstudio"
                     and self._lmstudio_auto_resolve
@@ -487,6 +521,11 @@ class APIRouter:
                 else:
                     raise
             elapsed = time.monotonic() - t0
+
+        # Strip any <think> or <thought> blocks emitted by local thinking judges (e.g. gemma-4)
+        clean_text, _ = strip_thinking(text)
+        if clean_text.strip():
+            text = clean_text.strip()
 
         elapsed_ms = elapsed * 1000
         with self._latency_lock:

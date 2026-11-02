@@ -104,18 +104,24 @@ python run_experiment.py --mode dry
 # 2) 5-question live micro-test (needs LM Studio + cloud keys)
 python run_experiment.py --mode micro
 
-# 3) Full run — all runs in runs.yaml, sequentially
+# 3) Regrade existing checkpoints offline (no API or LM Studio calls)
+python run_experiment.py --mode regrade
+
+# 4) Re-run ONLY previously truncated/error items via API (saves ~95% of tokens)
+python run_experiment.py --mode full --retry-truncated
+
+# 5) Full run — all runs in runs.yaml, sequentially
 python run_experiment.py --mode full
 
-# 4) Single named run
+# 6) Single named run
 python run_experiment.py --mode full --run-name nematron_ultra
 
-# 5) Ad-hoc single run (judge explicitly local)
+# 7) Ad-hoc single run (judge explicitly local)
 python run_experiment.py --mode full \
     --target-provider nim --target-model nvidia/nemotron-ultra-253b-v1 \
     --judge-provider lmstudio --judge-model qwen2.5-7b-instruct
 
-# 6) Open the HTML report
+# 8) Open the HTML report
 start outputs/report.html   # Windows
 open outputs/report.html    # macOS
 ```
@@ -127,7 +133,7 @@ open outputs/report.html    # macOS
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--runs` | `config/runs.yaml` | Path to runs config |
-| `--mode` | `full` | `dry` / `micro` / `full` |
+| `--mode` | `full` | `dry` / `micro` / `full` / `regrade` |
 | `--run-name` | — | Run a single named entry |
 | `--target-provider` | — | Override target provider |
 | `--target-model` | — | Override target model ID |
@@ -137,6 +143,7 @@ open outputs/report.html    # macOS
 | `--concurrency-judge` | 1 | Override judge concurrency |
 | `--limit` | — | Run first N items only |
 | `--no-resume` | False | Ignore checkpoints (expensive!) |
+| `--retry-truncated` | False | Drop `EMPTY`/`JUDGE_ERROR` rows from checkpoints so `--mode full` re-queries only cut-off responses |
 | `--log-level` | `INFO` | `DEBUG` / `INFO` |
 
 ---
@@ -147,30 +154,33 @@ After a full run, `outputs/` contains:
 
 - `report.html` — Full HTML report (open in browser)
 - `graded/` — Per-run JSONL graded rows
-- `metrics/` — CSV tables T1–T8
-- `figures/` — PNG plots P1–P8
+- `metrics/` — CSV tables T1–T10
+- `figures/` — PNG plots P1–P9
 - `audit/` — Bamboogle disagreement audit CSV
 - `micro_sanity.json` — Sanity report after micro runs
 
-### Tables (T1–T8)
-- **T1**: Per-model summary @ neutral
+### Tables (T1–T10)
+- **T1**: Per-model summary @ neutral (includes Latent Knowledge Ceiling, True Answer Suppression, Epistemic Efficiency Ratio, and McNemar $p$-values)
 - **T2**: Per-model × dataset accuracy
 - **T3**: Pressure table (model × level)
 - **T4**: Per-model × answer_type accuracy
 - **T5**: Premise × hop accuracy
 - **T6**: Bamboogle audit (non-CORRECT items)
 - **T7**: Stage-1 recovery detail
-- **T8**: Judge health (parse failures, latency)
+- **T8**: Judge health (parse failures, latency over actual LLM-judged calls)
+- **T9**: 3-Way Diagnostic Failure Taxonomy (Robust Recall vs. True Answer Suppression vs. Retrieval Failure vs. Calibrated Ignorance vs. Uncalibrated Hallucination)
+- **T10**: Mechanistic CoT Self-Censorship & Overthinking Audit (`<think>` / `<thought>` traces where the gold fact or conservative caution rules appeared before refusal/truncation)
 
-### Plots (P1–P8)
+### Plots (P1–P9)
 - **P1**: Outcome distribution @ neutral (stacked bars)
 - **P2**: Refusal rate under alignment pressure (line plot)
 - **P3**: Hallucination rate under alignment pressure (line plot)
 - **P4**: Stage-1 recovery rates (grouped bars)
 - **P5**: Calibration heatmap (model × level)
 - **P6**: PopQA long-tail by popularity quartile
-- **P7**: Per-dataset accuracy @ neutral
-- **P8**: Stage 0→1 transition heatmap (recoverability)
+- **P7**: Per-dataset accuracy @ neutral (with `FalseQA` separated into `FalseQA (True)` and `FalseQA (False)`)
+- **P8**: Stage 0→1 transition heatmap across all evaluated models (recoverability)
+- **P9**: 3-Way Diagnostic Failure Taxonomy & Conservative Refusal Decomposition (True Answer Suppression vs. Calibrated Ignorance)
 
 ---
 

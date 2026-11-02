@@ -6,19 +6,14 @@ Usage examples:
   # 1) Sanity check, no network, no LM Studio
   python run_experiment.py --mode dry
 
-  # 2) 5-question micro test (needs LM Studio server ON + cloud keys)
+  # 2) Offline regrade & report regeneration (cleans existing checkpoints & graded JSONLs)
+  python run_experiment.py --mode regrade
+
+  # 3) 5-question micro test (needs LM Studio server ON + cloud keys)
   python run_experiment.py --mode micro
 
-  # 3) Full run over all models in runs.yaml
-  python run_experiment.py --mode full
-
-  # 4) Single named run
-  python run_experiment.py --mode full --run-name nematron_ultra
-
-  # 5) Ad-hoc single run with explicit target + judge
-  python run_experiment.py --mode full \\
-      --target-provider nim --target-model nvidia/nemotron-ultra-253b-v1 \\
-      --judge-provider lmstudio --judge-model qwen2.5-7b-instruct
+  # 4) Full run over all models in runs.yaml (re-running only previously truncated items if --retry-truncated)
+  python run_experiment.py --mode full --retry-truncated
 """
 import argparse
 import sys
@@ -66,9 +61,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--mode",
-        choices=["dry", "micro", "full"],
+        choices=["dry", "micro", "full", "regrade"],
         default="full",
-        help="Execution mode: dry (no network), micro (5 items), full (all items). Default: full",
+        help="Execution mode: dry (no network), regrade (offline clean & rebuild), micro (5 items), full (all items). Default: full",
     )
     p.add_argument(
         "--run-name",
@@ -129,6 +124,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Ignore existing checkpoints and start fresh (careful: expensive).",
     )
     p.add_argument(
+        "--retry-truncated",
+        action="store_true",
+        help="Purge previously truncated/empty CoT or JUDGE_ERROR checkpoint entries so they are re-queried.",
+    )
+    p.add_argument(
         "--log-level",
         choices=["DEBUG", "INFO"],
         default="INFO",
@@ -163,14 +163,11 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
-    # Setup logging first
     log = setup_logging(args.log_level)
     log.info("Anti-Hallucination Paradox pipeline starting (mode=%s)", args.mode)
 
-    # Load .env
     load_env()
 
-    # Load settings.yaml
     settings_path = args.settings
     if not Path(settings_path).exists():
         log.error("settings.yaml not found at %s", settings_path)
@@ -178,18 +175,14 @@ def main() -> int:
     with open(settings_path, "r", encoding="utf-8") as f:
         settings_raw: dict = yaml.safe_load(f)
 
-    # Apply CLI overrides to settings
     if args.concurrency is not None:
         settings_raw["concurrency_target"] = args.concurrency
     if args.concurrency_judge is not None:
         settings_raw["concurrency_judge"] = args.concurrency_judge
 
-    # Build runs list
     runs_raw: list[dict] = []
 
-    # Single-run override: --target-provider + --target-model
     if args.target_provider and args.target_model:
-        # Build a one-entry run list
         judge_provider = args.judge_provider or "lmstudio"
         judge_model = args.judge_model or "qwen2.5-7b-instruct"
         ad_hoc_run_name = args.run_name or f"adhoc__{args.target_model.replace('/', '_')}"
@@ -210,7 +203,6 @@ def main() -> int:
             judge_provider, judge_model,
         )
     else:
-        # Load from runs.yaml
         runs_path = args.runs
         if not Path(runs_path).exists():
             log.error("runs.yaml not found at %s", runs_path)
@@ -222,13 +214,11 @@ def main() -> int:
             log.error("No runs found in %s", runs_path)
             return 1
 
-    # Verify data file
     data_path = args.data
     if not Path(data_path).exists():
         log.error("Benchmark data file not found at %s", data_path)
         return 1
 
-    # Paths
     output_dir = args.output_dir
     checkpoint_dir = str(PROJECT_ROOT / "data" / "checkpoints")
     graded_dir = str(Path(output_dir) / "graded")
@@ -245,12 +235,12 @@ def main() -> int:
             graded_dir=graded_dir,
             no_resume=args.no_resume,
             limit=args.limit,
+            retry_truncated=args.retry_truncated,
         )
     except KeyboardInterrupt:
         log.info("\nInterrupted by user. Checkpoints are safe; re-run to resume.")
         return 0
     except Exception as e:
-        # Catch LMStudio pre-flight failures explicitly for a clean user message + exit code 1
         exc_type_name = type(e).__name__
         if exc_type_name in ("LMStudioNotReachable", "LMStudioNoModelLoaded"):
             log.error("LM Studio pre-flight failed: %s", e)

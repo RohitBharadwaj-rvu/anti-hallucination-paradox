@@ -2,8 +2,8 @@ decoding:
   temperature: 0.0          # fallback to 0.1 if a provider rejects 0.0
   temperature_fallback: 0.1
   seed: 42                  # pass only if provider accepts; swallow errors otherwise
-  max_tokens_target: 4096   # thinking models need room for CoT + answer
-  max_tokens_judge: 8       # single-token verdict
+  max_tokens_target: 8192   # thinking models need ample room for CoT + final answer without mid-CoT truncation
+  max_tokens_judge: 256     # allows local thinking judges (e.g. gemma-4-e4b-it) to finish <thought> + 1-word verdict
   top_p: 1.0
 
 retry:

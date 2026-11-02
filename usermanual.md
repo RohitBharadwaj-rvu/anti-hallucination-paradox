@@ -55,6 +55,18 @@ Requires LM Studio running locally with a loaded judge model:
 python run_experiment.py --mode micro
 ```
 
+### Offline Regrade (No API / No LM Studio calls)
+Re-applies all updated refusal regexes, gold patches, CoT extraction rules, and taxonomy metrics to existing checkpoints and regenerates `outputs/report.html`:
+```bash
+python run_experiment.py --mode regrade
+```
+
+### Fast Incremental Re-Run of Only Cut-Off Responses
+Re-fetches only the previously truncated (`EMPTY` / `JUDGE_ERROR`) reasoning items using the 8,192-token limit while keeping all valid completed responses:
+```bash
+python run_experiment.py --mode full --retry-truncated
+```
+
 ### Full Benchmark Run
 Runs the evaluation across all 100 benchmark items:
 ```bash
@@ -81,8 +93,8 @@ python run_experiment.py --mode full \
 
 All outputs are saved to `outputs/`:
 - `report.html`: Comprehensive HTML evaluation report with metrics & figures.
-- `metrics/`: CSV metric tables (T1 through T8).
-- `figures/`: High-resolution figures/plots (P1 through P8).
+- `metrics/`: CSV metric tables (T1 through T10).
+- `figures/`: High-resolution figures/plots (P1 through P9).
 - `graded/`: Full JSONL records of all graded responses.
 - `audit/`: Raw target prompt audit logs (`*_prompts_audit.jsonl`) verifying zero metadata leakage.
 - `micro_sanity.json`: Micro run verification report.
