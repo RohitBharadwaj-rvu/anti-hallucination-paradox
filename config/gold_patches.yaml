@@ -4,7 +4,30 @@ patches:
   benchmark_037:
     expected_answers: ["Sam Raimi", "Samuel Marshall Raimi", "Sam Raimi and Robert Tapert", "Sam Raimi, Robert Tapert"]
   benchmark_040:
-    expected_answers: ["Murray Gold", "Murray Jonathan Gold", "Ron Grainer and Murray Gold"]
+    expected_answers: ["Murray Gold", "Murray Jonathan Gold", "Ron Grainer", "Ron Grainer and Murray Gold", "Ron Grainer, Delia Derbyshire"]
+  benchmark_024:
+    expected_answers: ["the first digits", "the first and fifth digits", "first and fifth digits", "first digits"]
+  benchmark_033:
+    expected_answers: ["Walton", "Walton-on-the-Hill", "Walton, Liverpool", "Liverpool"]
+  benchmark_053:
+    expected_answers: ["30 June 2011", "June 30, 2011", "June 2011", "2011"]
+  benchmark_055:
+    expected_answers: ["20 June 1837", "June 20, 1837", "June 1837", "1837"]
+  benchmark_072:
+    expected_answers: ["Two hands.", "Two", "2", "Two hands", "2 hands"]
+  benchmark_076:
+    expected_answers: ["Fridge.", "Fridge", "Freezer", "A freezer", "Neither; a freezer is used to freeze meat."]
+  benchmark_082:
+    expected_answers: [
+      "A man will breathe in about three thousand and six cubic meters of air per year.",
+      "3,000 to 5,000 cubic meters",
+      "4,000 to 5,000 cubic meters",
+      "4,000 cubic meters",
+      "4 million liters",
+      "3,000–5,000 cubic meters",
+      "4,000–5,000 cubic meters"
+    ]
 
 notes:
   benchmark_001: "numeric range gold; factual judge must honor the parenthetical range"
+

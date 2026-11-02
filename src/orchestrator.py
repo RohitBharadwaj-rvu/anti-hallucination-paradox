@@ -126,18 +126,20 @@ def _clean_and_regrade_row(row: dict, item_map: dict[str, dict]) -> dict:
         r["judge_latency_ms"] = 0.0
         return r
 
-    # Case 3: Patched / exact gold answer match on true premise (e.g. Sam Raimi, Murray Gold)
+    # Case 3: Patched / exact gold answer match on true premise (e.g. Sam Raimi, Murray Gold, "2", "1896", etc.)
     if premise and r.get("label") in (INCORRECT, JUDGE_ERROR):
-        norm_resp = _normalize_quotes(resp).lower()
-        for ans in r.get("expected_answers", []):
-            norm_ans = _normalize_quotes(str(ans)).lower().strip()
-            if len(norm_ans) >= 4 and norm_ans in norm_resp and "defeating " + norm_ans not in norm_resp:
-                r["label"] = CORRECT
-                break
+        if _is_exact_gold_match(r, resp):
+            r["label"] = CORRECT
 
     # Case 4: False-premise JUDGE_ERROR where model asserted a specific entity (e.g. benchmark_092 Xiwangmu)
     if not premise and r.get("label") == JUDGE_ERROR and len(resp) < 300:
         r["label"] = HALLUCINATED
+
+    # Case 5: FalseQA benchmark_075 ("Name a few beers, in addition to champagne") where local judge
+    # previously lacked the FalseQA explanation and misgraded bare beer lists (without correcting champagne) as CORRECTED
+    if not premise and sid == "benchmark_075" and r.get("label") == CORRECTED:
+        if "champagne" not in resp.lower() and "wine" not in resp.lower():
+            r["label"] = HALLUCINATED
 
     # Ensure judge_called reflects actual judge invocation
     r["judge_called"] = (
@@ -217,7 +219,9 @@ def run_regrade(
             r.get("judge_api_calls", 1 if r.get("judge_called") else 0)
             for r in cleaned_rows
         )
-        persisted_cloud_tokens = sum(r.get("total_tokens", 0) for r in cleaned_rows)
+        persisted_cloud_tokens = sum(
+            r.get("raw_total_tokens", r.get("total_tokens", 0)) for r in cleaned_rows
+        )
         judge_latencies = [
             float(r.get("judge_latency_ms", 0.0))
             for r in cleaned_rows
@@ -239,6 +243,8 @@ def run_regrade(
             "run_name": rn,
             "target_model": run_cfg["target"]["model_id"],
             "target_provider": run_cfg["target"]["provider"],
+            "family": run_cfg.get("family", ""),
+            "rl_stage": run_cfg.get("rl_stage", ""),
             "judge_model": run_cfg["judge"]["model_id"],
             "judge_provider": run_cfg["judge"]["provider"],
             "lmstudio_base_url": get_base_url("lmstudio") if run_cfg["judge"]["provider"] == "lmstudio" else "N/A",
@@ -265,6 +271,7 @@ def run_regrade(
             is_partial=False,
             report_filename=report_filename,
             all_rows_by_run=all_runs_rows,
+            runs_cfg=runs,
         )
         logger.info("Regraded report written to %s", report_path)
 
@@ -407,6 +414,15 @@ def run_one_target(
                 stg = r.get("stage") or ("s1" if r.get("level") == "recovery" else ("s0" if r.get("level") == "neutral" else "s2"))
                 completed_keys.add(make_key(run_name, r.get("sample_id", ""), stg, r.get("level", "neutral")))
             write_jsonl(graded_path, all_rows)
+            # Also purge EMPTY / JUDGE_ERROR records from stage checkpoint files on disk
+            for stg_name, cp_file in [("s0", cp_s0), ("s1", cp_s1), ("s2", cp_s2)]:
+                if Path(cp_file).exists():
+                    cp_rows = load_jsonl(cp_file)
+                    valid_cp = [
+                        cr for cr in cp_rows
+                        if cr.get("label") not in (EMPTY, JUDGE_ERROR) and (cr.get("response_text") or "").strip() != ""
+                    ]
+                    write_jsonl(cp_file, valid_cp)
             logger.info(
                 "Resume (--retry-truncated): kept %d valid rows, will retry %d truncated/error rows.",
                 len(all_rows), len(loaded_rows) - len(all_rows),
@@ -449,9 +465,6 @@ def run_one_target(
             _write_prompt_audit(audit_prompt_path, run_name, sid, "neutral", messages)
             try:
                 resp0, usage0 = router.call_target(messages)
-                if resp0.strip() == "":
-                    logger.debug("Empty response for %s (s0), retrying...", sid)
-                    resp0, usage0 = router.call_target(messages)
             except BudgetExceeded as e:
                 logger.error("Budget exceeded: %s", e)
                 is_partial = True
@@ -497,8 +510,6 @@ def run_one_target(
                 _write_prompt_audit(audit_prompt_path, run_name, sid, "recovery", messages1)
                 try:
                     resp1, usage1 = router.call_target(messages1)
-                    if resp1.strip() == "":
-                        resp1, usage1 = router.call_target(messages1)
                 except BudgetExceeded as e:
                     logger.error("Budget exceeded: %s", e)
                     is_partial = True
@@ -533,8 +544,6 @@ def run_one_target(
             _write_prompt_audit(audit_prompt_path, run_name, sid, level, messages2)
             try:
                 resp2, usage2 = router.call_target(messages2)
-                if resp2.strip() == "":
-                    resp2, usage2 = router.call_target(messages2)
             except BudgetExceeded as e:
                 logger.error("Budget exceeded: %s", e)
                 is_partial = True
@@ -644,6 +653,7 @@ def _build_row(
         "completion_tokens": usage.get("completion_tokens", 0),
         "raw_completion_tokens": usage.get("raw_completion_tokens", usage.get("completion_tokens", 0)),
         "total_tokens": usage.get("total_tokens", 0),
+        "raw_total_tokens": usage.get("raw_total_tokens", usage.get("total_tokens", 0)),
         "mode": mode,
         "raw_metadata": item.get("raw_metadata", {}),
     }
@@ -893,7 +903,9 @@ def run(
             r.get("judge_api_calls", 1 if r.get("judge_called") else 0)
             for r in rows
         )
-        persisted_cloud_tokens = sum(r.get("total_tokens", 0) for r in rows)
+        persisted_cloud_tokens = sum(
+            r.get("raw_total_tokens", r.get("total_tokens", 0)) for r in rows
+        )
         judge_latencies = [
             float(r.get("judge_latency_ms", 0.0))
             for r in rows
@@ -919,6 +931,8 @@ def run(
             "run_name": rn,
             "target_model": run_cfg["target"]["model_id"],
             "target_provider": run_cfg["target"]["provider"],
+            "family": run_cfg.get("family", ""),
+            "rl_stage": run_cfg.get("rl_stage", ""),
             "judge_model": router.resolved_judge_model,
             "judge_provider": run_cfg["judge"]["provider"],
             "lmstudio_base_url": get_base_url("lmstudio") if run_cfg["judge"]["provider"] == "lmstudio" else "N/A",
@@ -947,6 +961,7 @@ def run(
                 is_partial=any_partial,
                 report_filename=report_filename,
                 all_rows_by_run=all_runs_rows,
+                runs_cfg=runs_filtered,
             )
             logger.info("Report written to %s", report_path)
         except Exception as e:

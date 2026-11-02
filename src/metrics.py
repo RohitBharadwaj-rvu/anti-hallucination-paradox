@@ -698,3 +698,234 @@ def flatten_to_dataframes(model_results: dict, all_rows: list[dict] | None = Non
     dfs["T5_premise_x_hop"] = pd.DataFrame(t5_rows)
 
     return dfs
+
+
+# ---------------------------------------------------------------------------
+# T11: Cross-Model & RL-Family Progression Analysis (Paired Item Transitions)
+# ---------------------------------------------------------------------------
+
+def infer_family_and_stage(run_name: str, run_cfg: dict | None = None) -> tuple[str, int]:
+    """
+    Resolve (family_name, rl_stage_order) from run_cfg metadata or infer from run_name.
+    Lower rl_stage_order = earlier generation / lighter post-training;
+    Higher rl_stage_order = later generation / heavier RL post-training.
+    """
+    if run_cfg:
+        fam = run_cfg.get("family")
+        stg = run_cfg.get("rl_stage")
+        if fam and stg is not None:
+            try:
+                return str(fam), int(stg)
+            except (ValueError, TypeError):
+                return str(fam), 1
+
+    rn = run_name.lower()
+    if "glm" in rn:
+        fam = "GLM"
+        stg = 2 if ("5p3" in rn or "5.3" in rn or "5_3" in rn) else 1
+        return fam, stg
+    if "minimax" in rn:
+        fam = "MiniMax"
+        stg = 1 if ("3p1" in rn or "3.1" in rn or "flash" in rn or "m2" in rn) else 2
+        return fam, stg
+    if "kimi" in rn:
+        fam = "Kimi"
+        stg = 1
+        return fam, stg
+    return run_name, 1
+
+
+def _pair_progression_row(
+    comparison_type: str,
+    family: str,
+    pred_name: str,
+    succ_name: str,
+    pred_rows: list[dict],
+    succ_rows: list[dict],
+    pred_res: dict,
+    succ_res: dict,
+) -> dict:
+    """
+    Compute exact paired item-level transitions and metric deltas from pred_name -> succ_name.
+    """
+    pred_rows = deduplicate_rows(pred_rows)
+    succ_rows = deduplicate_rows(succ_rows)
+
+    pred_by_sid: dict[str, dict[str, dict]] = defaultdict(dict)
+    for r in pred_rows:
+        if r.get("sample_id"):
+            pred_by_sid[r["sample_id"]][r.get("level", "neutral")] = r
+
+    succ_by_sid: dict[str, dict[str, dict]] = defaultdict(dict)
+    for r in succ_rows:
+        if r.get("sample_id"):
+            succ_by_sid[r["sample_id"]][r.get("level", "neutral")] = r
+
+    shared_true_sids = sorted(
+        sid for sid in set(pred_by_sid.keys()) & set(succ_by_sid.keys())
+        if any(row.get("premise") is True for row in pred_by_sid[sid].values())
+    )
+
+    n_correct_to_refusal_neutral = 0
+    n_correct_to_refusal_cons = 0
+    n_known_newly_suppressed = 0
+
+    # Discordant counts for paired McNemar across models
+    cons_ref_pred_only = 0
+    cons_ref_succ_only = 0
+    neut_acc_pred_only = 0
+    neut_acc_succ_only = 0
+
+    for sid in shared_true_sids:
+        p_lvls = pred_by_sid[sid]
+        s_lvls = succ_by_sid[sid]
+
+        p_neut = p_lvls.get("neutral", {}).get("label")
+        s_neut = s_lvls.get("neutral", {}).get("label")
+        p_cons = p_lvls.get("conservative", {}).get("label")
+        s_cons = s_lvls.get("conservative", {}).get("label")
+
+        if p_neut in (EMPTY, JUDGE_ERROR) or s_neut in (EMPTY, JUDGE_ERROR):
+            pass
+        elif p_neut is not None and s_neut is not None:
+            if p_neut == CORRECT and s_neut == REFUSAL:
+                n_correct_to_refusal_neutral += 1
+            if p_neut == CORRECT and s_neut != CORRECT:
+                neut_acc_pred_only += 1
+            elif s_neut == CORRECT and p_neut != CORRECT:
+                neut_acc_succ_only += 1
+
+        if p_cons in (EMPTY, JUDGE_ERROR) or s_cons in (EMPTY, JUDGE_ERROR):
+            pass
+        elif p_cons is not None and s_cons is not None:
+            if p_cons == CORRECT and s_cons == REFUSAL:
+                n_correct_to_refusal_cons += 1
+            if p_cons == REFUSAL and s_cons != REFUSAL:
+                cons_ref_pred_only += 1
+            elif s_cons == REFUSAL and p_cons != REFUSAL:
+                cons_ref_succ_only += 1
+
+        p_ever = any(
+            p_lvls.get(l, {}).get("label") == CORRECT
+            for l in ("neutral", "recovery", "permissive", "conservative")
+        )
+        s_ever = any(
+            s_lvls.get(l, {}).get("label") == CORRECT
+            for l in ("neutral", "recovery", "permissive", "conservative")
+        )
+        p_suppressed = p_ever and (p_cons == REFUSAL or p_neut == REFUSAL)
+        s_suppressed = (p_ever or s_ever) and (s_cons == REFUSAL or s_neut == REFUSAL)
+        if p_ever and not p_suppressed and s_suppressed:
+            n_known_newly_suppressed += 1
+
+    p_tax = pred_res.get("taxonomy", {})
+    s_tax = succ_res.get("taxonomy", {})
+    p_neut_m = pred_res.get("slices", {}).get("level_neutral", {})
+    s_neut_m = succ_res.get("slices", {}).get("level_neutral", {})
+    p_cons_m = pred_res.get("slices", {}).get("level_conservative", {})
+    s_cons_m = succ_res.get("slices", {}).get("level_conservative", {})
+
+    def _diff(a: Any, b: Any) -> float:
+        try:
+            if a is None or b is None or a != a or b != b:
+                return float("nan")
+            return float(b) - float(a)
+        except Exception:
+            return float("nan")
+
+    return {
+        "comparison_type": comparison_type,
+        "family": family,
+        "predecessor": pred_name,
+        "successor": succ_name,
+        "delta_latent_knowledge": _diff(p_tax.get("latent_knowledge_rate"), s_tax.get("latent_knowledge_rate")),
+        "delta_correct_neutral": _diff(p_neut_m.get("correct_rate_true"), s_neut_m.get("correct_rate_true")),
+        "delta_refusal_neutral": _diff(p_neut_m.get("refusal_rate_true"), s_neut_m.get("refusal_rate_true")),
+        "delta_refusal_conservative": _diff(p_cons_m.get("refusal_rate_true"), s_cons_m.get("refusal_rate_true")),
+        "delta_true_suppression": _diff(p_tax.get("true_suppression_rate"), s_tax.get("true_suppression_rate")),
+        "delta_suppression_proxy": _diff(pred_res.get("suppression_proxy"), succ_res.get("suppression_proxy")),
+        "delta_calibration_false": _diff(
+            p_neut_m.get("calibration_success_false"), s_neut_m.get("calibration_success_false")
+        ),
+        "n_correct_to_refusal_neutral": n_correct_to_refusal_neutral,
+        "n_correct_to_refusal_cons": n_correct_to_refusal_cons,
+        "n_known_newly_suppressed": n_known_newly_suppressed,
+        "mcnemar_cons_refusal_p": _mcnemar_exact_p(cons_ref_pred_only, cons_ref_succ_only),
+        "mcnemar_neutral_acc_p": _mcnemar_exact_p(neut_acc_pred_only, neut_acc_succ_only),
+    }
+
+
+def compute_rl_progression(
+    all_runs_rows: dict[str, list[dict]],
+    all_model_results: dict[str, dict],
+    runs_cfg: list[dict] | None = None,
+) -> pd.DataFrame:
+    """
+    Build Table T11 (`T11_rl_family_progression`):
+      1. Pairs consecutive RL generations within each model family (e.g. GLM 5.2 -> GLM 5.3,
+         MiniMax 3.1 Flash -> MiniMax M3) whenever >= 2 checkpoints of a family are present.
+      2. Also includes cross-model progression ordered by alignment conservatism / suppression
+         rate so that baseline multi-family runs immediately surface paired item-level transitions
+         and exact McNemar p-values.
+    """
+    cfg_map = {r["name"]: r for r in (runs_cfg or []) if "name" in r}
+    families: dict[str, list[tuple[int, str]]] = defaultdict(list)
+    for mn in all_model_results.keys():
+        fam, stg = infer_family_and_stage(mn, cfg_map.get(mn))
+        families[fam].append((stg, mn))
+
+    rows_out: list[dict] = []
+
+    # 1. Within-family RL progression pairs (when >= 2 stages of the same family exist)
+    for fam, members in families.items():
+        if len(members) >= 2:
+            members_sorted = sorted(members, key=lambda x: (x[0], x[1]))
+            for i in range(len(members_sorted) - 1):
+                pred_mn = members_sorted[i][1]
+                succ_mn = members_sorted[i + 1][1]
+                rows_out.append(
+                    _pair_progression_row(
+                        comparison_type="within_family_rl",
+                        family=fam,
+                        pred_name=pred_mn,
+                        succ_name=succ_mn,
+                        pred_rows=all_runs_rows.get(pred_mn, []),
+                        succ_rows=all_runs_rows.get(succ_mn, []),
+                        pred_res=all_model_results[pred_mn],
+                        succ_res=all_model_results[succ_mn],
+                    )
+                )
+
+    # 2. Cross-model alignment conservatism progression (ordered by true_suppression_rate)
+    model_names = list(all_model_results.keys())
+    if len(model_names) >= 2:
+        ordered_models = sorted(
+            model_names,
+            key=lambda mn: (
+                all_model_results[mn].get("taxonomy", {}).get("true_suppression_rate") or 0.0,
+                all_model_results[mn].get("suppression_proxy") or 0.0,
+            ),
+        )
+        for i in range(len(ordered_models) - 1):
+            pred_mn = ordered_models[i]
+            succ_mn = ordered_models[i + 1]
+            # Avoid duplicating an already-added within-family pair
+            if any(r["predecessor"] == pred_mn and r["successor"] == succ_mn for r in rows_out):
+                continue
+            fam_p, _ = infer_family_and_stage(pred_mn, cfg_map.get(pred_mn))
+            fam_s, _ = infer_family_and_stage(succ_mn, cfg_map.get(succ_mn))
+            rows_out.append(
+                _pair_progression_row(
+                    comparison_type="cross_family_spectrum",
+                    family=f"{fam_p} -> {fam_s}",
+                    pred_name=pred_mn,
+                    succ_name=succ_mn,
+                    pred_rows=all_runs_rows.get(pred_mn, []),
+                    succ_rows=all_runs_rows.get(succ_mn, []),
+                    pred_res=all_model_results[pred_mn],
+                    succ_res=all_model_results[succ_mn],
+                )
+            )
+
+    return pd.DataFrame(rows_out)
+

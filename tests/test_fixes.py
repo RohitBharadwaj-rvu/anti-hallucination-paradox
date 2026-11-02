@@ -219,8 +219,81 @@ assert len(items) == 100
 print(f"[PASS] Dry mode will print all {len(items)} items per stage (4 stages = 400 lines)")
 
 # ================================================================
+# Fix 9: FalseQA false-premise explanation fallback to expected_answers
+# ================================================================
+captured_judge_msgs = []
+class InspectJudgeRouter(MockRouter):
+    def call_judge(self, messages):
+        captured_judge_msgs.append(messages)
+        return 'HALLUCINATED', {}, 120.0
+
+inspect_router = InspectJudgeRouter()
+item_falseqa = {
+    'sample_id': 'benchmark_075', 'dataset_name': 'FalseQA',
+    'premise': False, 'question': 'Name a few beers, in addition to champagne.',
+    'expected_answers': ['Champagne is not a type of beer, it is a sparkling wine.'],
+    'explanation': None, 'hop': 'single',
+}
+lbl_fqa, _ = grader_mod.grade(inspect_router, item_falseqa, 'Heineken, Guinness, Corona, Budweiser.')
+assert lbl_fqa == HALLUCINATED
+assert 'Champagne is not a type of beer' in captured_judge_msgs[-1][1]['content']
+print("[PASS] judge_false() injects FalseQA expected_answers when explanation is None")
+
+# ================================================================
+# Fix 10: Ambiguity/clarification abstentions detected as REFUSAL
+# ================================================================
+for ambig_resp in [
+    "I need more context — 'The Trial' could refer to Franz Kafka's novel or a film.",
+    "Which 'New Deal' do you mean? Please specify.",
+    "The question is too vague to identify a specific person.",
+    "This question doesn't specify which treaty is meant.",
+]:
+    assert grader_mod.is_template_refusal(ambig_resp), f"Should detect ambiguity refusal: {ambig_resp!r}"
+print("[PASS] Ambiguity/clarification abstentions deterministically classified as REFUSAL")
+
+# ================================================================
+# Fix 11: Expanded gold_patches.yaml + _is_exact_gold_match rescue
+# ================================================================
+item_map = {it['sample_id']: it for it in items}
+assert grader_mod._is_exact_gold_match(item_map['benchmark_072'], '2')
+assert grader_mod._is_exact_gold_match(item_map['benchmark_055'], 'Queen Victoria ascended the throne on June 20, 1837.')
+assert grader_mod._is_exact_gold_match(item_map['benchmark_024'], 'They differ in the first and fifth digits.')
+assert grader_mod._is_exact_gold_match(item_map['benchmark_033'], 'Everton FC was originally based in Walton, Liverpool.')
+assert grader_mod._is_exact_gold_match(item_map['benchmark_076'], 'A freezer is used to freeze meat.')
+assert grader_mod._is_exact_gold_match(item_map['benchmark_082'], 'About 3,000 to 5,000 cubic meters of air per year.')
+print("[PASS] Expanded gold_patches.yaml and _is_exact_gold_match rescue valid factual answers")
+
+# ================================================================
+# Fix 12: RL-Family Progression (T11) paired transitions & McNemar p
+# ================================================================
+from src.metrics import compute_rl_progression
+pred_rows = [
+    {'sample_id': 's1', 'premise': True, 'level': 'neutral', 'stage': 's0', 'label': CORRECT},
+    {'sample_id': 's1', 'premise': True, 'level': 'permissive', 'stage': 's2', 'label': CORRECT},
+    {'sample_id': 's1', 'premise': True, 'level': 'conservative', 'stage': 's2', 'label': CORRECT},
+]
+succ_rows = [
+    {'sample_id': 's1', 'premise': True, 'level': 'neutral', 'stage': 's0', 'label': REFUSAL},
+    {'sample_id': 's1', 'premise': True, 'level': 'permissive', 'stage': 's2', 'label': CORRECT},
+    {'sample_id': 's1', 'premise': True, 'level': 'conservative', 'stage': 's2', 'label': REFUSAL},
+]
+pred_res = compute('fw_glm_5p2', pred_rows)
+succ_res = compute('fw_glm_5p3', succ_rows)
+t11 = compute_rl_progression(
+    {'fw_glm_5p2': pred_rows, 'fw_glm_5p3': succ_rows},
+    {'fw_glm_5p2': pred_res, 'fw_glm_5p3': succ_res},
+)
+assert len(t11) == 1
+assert t11.iloc[0]['comparison_type'] == 'within_family_rl'
+assert t11.iloc[0]['n_correct_to_refusal_neutral'] == 1
+assert t11.iloc[0]['n_known_newly_suppressed'] == 1
+assert t11.iloc[0]['delta_true_suppression'] == 1.0
+print("[PASS] compute_rl_progression (T11) accurately tracks paired RL-family suppression transitions")
+
+# ================================================================
 # Summary
 # ================================================================
 print("\n" + "="*60)
-print("ALL 8 BUG FIXES VERIFIED SUCCESSFULLY")
+print("ALL 12 BUG & AUDIT FIXES VERIFIED SUCCESSFULLY")
 print("="*60)
+

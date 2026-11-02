@@ -518,6 +518,112 @@ def plot_p9_failure_taxonomy(
         return None
 
 
+def plot_p10_rl_progression(
+    all_model_results: dict[str, dict],
+    runs_cfg: list[dict] | None,
+    output_dir: str,
+) -> str | None:
+    """
+    P10: Two-panel RL-Family & Alignment Progression visualization:
+      Left panel: Epistemic Trade-off Trajectory (True Answer Suppression % vs. Neutral True-Premise Accuracy %,
+        with Latent Knowledge Ceiling stars and arrows connecting consecutive RL checkpoints within families).
+      Right panel: Paired comparison of True Answer Suppression Rate vs. Alignment Pressure Suppression Proxy
+        (Conservative - Permissive Refusal Rate) across models/families.
+    """
+    try:
+        from src.metrics import infer_family_and_stage
+        model_names = [mn for mn, res in all_model_results.items() if res.get("taxonomy")]
+        if not model_names:
+            return None
+
+        cfg_map = {r["name"]: r for r in (runs_cfg or []) if "name" in r}
+        family_colors = {
+            "GLM": "#2980B9",
+            "MiniMax": "#E67E22",
+            "Kimi": "#8E44AD",
+        }
+
+        fig, (ax_traj, ax_bars) = plt.subplots(1, 2, figsize=(13.5, 5.5))
+
+        # Left panel: Scatter + family progression arrows in (True Suppression %, Neutral Accuracy %) plane
+        fam_points: dict[str, list[tuple[int, str, float, float, float]]] = {}
+        for mn in model_names:
+            res = all_model_results[mn]
+            tax = res.get("taxonomy", {})
+            neut = res.get("slices", {}).get("level_neutral", {})
+            x_supp = (tax.get("true_suppression_rate") or 0.0) * 100
+            y_acc = (neut.get("correct_rate_true") or 0.0) * 100
+            y_ceil = (tax.get("latent_knowledge_rate") or 0.0) * 100
+            fam, stg = infer_family_and_stage(mn, cfg_map.get(mn))
+            color = family_colors.get(fam, "#34495E")
+
+            ax_traj.scatter([x_supp], [y_acc], s=110, color=color, zorder=4, label=f"{mn} (Neutral Acc)")
+            ax_traj.scatter([x_supp], [y_ceil], s=95, marker="*", color=color, alpha=0.65, zorder=3)
+            # Dashed vertical line showing latent knowledge gap lost to suppression/retrieval on that model
+            ax_traj.plot([x_supp, x_supp], [y_acc, y_ceil], linestyle=":", color=color, alpha=0.6)
+            ax_traj.annotate(
+                f"{mn}\n(Acc: {y_acc:.1f}%, Ceil: {y_ceil:.1f}%)",
+                (x_supp, y_acc),
+                textcoords="offset points",
+                xytext=(6, -12),
+                fontsize=8,
+                fontweight="bold",
+                color=color,
+            )
+            fam_points.setdefault(fam, []).append((stg, mn, x_supp, y_acc, y_ceil))
+
+        # Draw directed arrows for within-family RL progression (e.g. GLM 5.2 -> 5.3, MiniMax 3.1 -> M3)
+        for fam, pts in fam_points.items():
+            if len(pts) >= 2:
+                pts_sorted = sorted(pts, key=lambda item: (item[0], item[1]))
+                color = family_colors.get(fam, "#34495E")
+                for i in range(len(pts_sorted) - 1):
+                    _, _, x0, y0, _ = pts_sorted[i]
+                    _, _, x1, y1, _ = pts_sorted[i + 1]
+                    ax_traj.annotate(
+                        "",
+                        xy=(x1, y1),
+                        xytext=(x0, y0),
+                        arrowprops=dict(arrowstyle="->", color=color, lw=2.2, ls="-"),
+                    )
+
+        ax_traj.set_xlabel("True Answer Suppression Rate (% of True-Premise Items)")
+        ax_traj.set_ylabel("True-Premise Accuracy @ Neutral (%)  [★ = Latent Ceiling]")
+        ax_traj.set_title("Epistemic Trajectory: Accuracy vs. True Answer Suppression\n(dashed vertical = gap below Latent Knowledge Ceiling)", fontsize=9.5)
+        ax_traj.set_xlim(left=-2, right=max(45, max((all_model_results[m]["taxonomy"].get("true_suppression_rate") or 0) * 100 for m in model_names) + 10))
+        ax_traj.set_ylim(0, 105)
+        ax_traj.grid(True, alpha=0.3)
+
+        # Right panel: Grouped bar comparing True Answer Suppression Rate vs Suppression Proxy per model
+        x_idx = range(len(model_names))
+        w = 0.36
+        true_supp_vals = [
+            (all_model_results[mn]["taxonomy"].get("true_suppression_rate") or 0.0) * 100
+            for mn in model_names
+        ]
+        proxy_vals = [
+            (all_model_results[mn].get("suppression_proxy") or 0.0) * 100
+            for mn in model_names
+        ]
+        ax_bars.bar([i - w / 2 for i in x_idx], true_supp_vals, w, label="True Answer Suppression Rate (%)", color="#F39C12")
+        ax_bars.bar([i + w / 2 for i in x_idx], proxy_vals, w, label="Suppression Proxy: Cons − Perm Refusal (%)", color="#E67E22")
+        ax_bars.set_xticks(list(x_idx))
+        ax_bars.set_xticklabels(model_names, rotation=15)
+        ax_bars.set_ylabel("Percentage Points (%)")
+        ax_bars.set_title("True Answer Suppression vs. Alignment-Pressure Proxy\nAcross Model Families & RL Stages", fontsize=9.5)
+        ax_bars.legend(loc="upper left", fontsize=8)
+        ax_bars.grid(True, axis="y", alpha=0.3)
+
+        fig.suptitle("P10: RL Post-Training & Alignment Progression — The Anti-Hallucination Paradox", fontsize=11)
+        plt.tight_layout()
+        out_path = str(Path(output_dir) / "P10_rl_progression.png")
+        _save_fig(fig, out_path)
+        return out_path
+    except Exception as e:
+        logger.warning("P10 plot failed: %s", e)
+        return None
+
+
 # ---------------------------------------------------------------------------
 # HTML Report Template
 # ---------------------------------------------------------------------------
@@ -581,6 +687,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
   <table>
     <tr><td>Target Model</td><td>{{ run_meta.target_model }}</td></tr>
     <tr><td>Target Provider</td><td>{{ run_meta.target_provider }}</td></tr>
+    {% if run_meta.family %}<tr><td>Model Family / RL Stage</td><td>{{ run_meta.family }} (stage {{ run_meta.rl_stage }})</td></tr>{% endif %}
     <tr><td>Judge Model</td><td><span class="judge-local">{{ run_meta.judge_model }}</span></td></tr>
     <tr><td>Judge Provider</td><td><span class="judge-local">{{ run_meta.judge_provider }}</span></td></tr>
     <tr><td>LM Studio Base URL</td><td>{{ run_meta.lmstudio_base_url }}</td></tr>
@@ -645,6 +752,7 @@ _TABLE_CAPTIONS = {
     "T8": "T8: Judge health — parse failures, errors, active judge latency",
     "T9": "T9: 3-Way Diagnostic Failure Taxonomy (Robust Recall, True Answer Suppression, Retrieval Failure, Calibrated vs. Uncalibrated Knowledge Loss)",
     "T10": "T10: Chain-of-Thought (CoT) Self-Censorship & Caution Audit (items where internal CoT surfaced gold facts or caution rules before refusing/failing)",
+    "T11": "T11: RL-Family & Cross-Model Progression — Paired item-level transitions (Predecessor → Successor), Δ suppression metrics, and paired McNemar p-values",
 }
 
 _FIG_CAPTIONS = {
@@ -657,6 +765,7 @@ _FIG_CAPTIONS = {
     "P7": "P7: Per-dataset accuracy @ neutral (True-premise recall vs. False-premise calibration).",
     "P8": "P8: Stage 0→1 transition heatmap (true premise, triggered set).",
     "P9": "P9: 3-Way Failure Taxonomy & Decomposition of Conservative Refusals (True Answer Suppression vs. Calibrated Ignorance).",
+    "P10": "P10: RL Post-Training & Alignment Progression — Trajectory in the Accuracy vs. True Answer Suppression plane.",
 }
 
 
@@ -673,6 +782,7 @@ def build(
     is_partial: bool = False,
     all_rows_by_run: dict[str, list[dict]] | None = None,
     report_filename: str = "report.html",
+    runs_cfg: list[dict] | None = None,
 ) -> str:
     """
     Build the full report: CSVs, PNGs, and HTML.
@@ -700,7 +810,7 @@ def build(
     Path(audit_dir).mkdir(parents=True, exist_ok=True)
 
     # --- Write CSVs ---
-    from src.metrics import flatten_to_dataframes
+    from src.metrics import flatten_to_dataframes, compute_rl_progression
     raw_rows_map = all_rows_by_run or all_runs_rows
     for model_name, results in all_model_results.items():
         raw_rows = raw_rows_map.get(model_name, [])
@@ -709,6 +819,11 @@ def build(
             mn_safe = model_name.replace("/", "_").replace(":", "_")
             csv_path = str(Path(metrics_dir) / f"{table_key}_{mn_safe}.csv")
             df.to_csv(csv_path, index=False)
+
+    # --- T11: RL-Family & Cross-Model Progression CSV ---
+    t11_df = compute_rl_progression(raw_rows_map, all_model_results, runs_cfg=runs_cfg)
+    if not t11_df.empty:
+        t11_df.to_csv(str(Path(metrics_dir) / "T11_rl_family_progression.csv"), index=False)
 
     # --- T6: Bamboogle audit CSV ---
     bamboogle_audit_rows = []
@@ -742,9 +857,13 @@ def build(
     fig_paths["P7"] = plot_p7_accuracy_by_dataset(all_runs_rows, figures_dir)
     p8_paths = plot_p8_transition_heatmap(all_runs_rows, figures_dir)
     fig_paths["P9"] = plot_p9_failure_taxonomy(all_model_results, figures_dir)
+    fig_paths["P10"] = plot_p10_rl_progression(all_model_results, runs_cfg, figures_dir)
 
     # --- Build HTML ---
-    tables_html = _build_tables_html(all_runs_rows, all_model_results, bamboogle_audit_rows, raw_rows_map=raw_rows_map)
+    tables_html = _build_tables_html(
+        all_runs_rows, all_model_results, bamboogle_audit_rows,
+        raw_rows_map=raw_rows_map, t11_df=t11_df,
+    )
 
     report_html_path = str(output_path / report_filename)
     figures_info = []
@@ -786,6 +905,16 @@ def build(
         "caption": _FIG_CAPTIONS["P9"],
     })
 
+    # Add P10 (RL Post-Training & Alignment Progression)
+    p10_path = fig_paths.get("P10")
+    p10_rel = os.path.relpath(p10_path, output_path).replace("\\", "/") if p10_path else None
+    figures_info.append({
+        "title": "P10",
+        "path": p10_path,
+        "rel_path": p10_rel,
+        "caption": _FIG_CAPTIONS["P10"],
+    })
+
     env = Environment(loader=BaseLoader())
     template = env.from_string(_HTML_TEMPLATE)
     html = template.render(
@@ -808,8 +937,9 @@ def _build_tables_html(
     all_model_results: dict[str, dict],
     bamboogle_audit_rows: list[dict],
     raw_rows_map: dict[str, list[dict]] | None = None,
+    t11_df: pd.DataFrame | None = None,
 ) -> list[str]:
-    """Build HTML for each table T1-T10."""
+    """Build HTML for each table T1-T11."""
     from src.metrics import flatten_to_dataframes
     html_blocks = []
     if raw_rows_map is None:
@@ -829,6 +959,10 @@ def _build_tables_html(
             if col.endswith("_p"):
                 df_display[col] = df_display[col].apply(
                     lambda x: (f"{x:.2e}" if x < 0.001 else f"{x:.4f}") if pd.notna(x) and x == x else "—"
+                )
+            elif col.startswith("delta_"):
+                df_display[col] = df_display[col].apply(
+                    lambda x: f"{x:+.3f}" if pd.notna(x) and x == x and abs(x) != float("inf") else "—"
                 )
             else:
                 df_display[col] = df_display[col].apply(
@@ -850,6 +984,9 @@ def _build_tables_html(
     if "T9_failure_taxonomy" in merged:
         df = pd.concat(merged["T9_failure_taxonomy"], ignore_index=True)
         html_blocks.append(_to_html(df, "T9: 3-Way Diagnostic Failure Taxonomy & Suppression Decomposition", _TABLE_CAPTIONS["T9"]))
+
+    if t11_df is not None and not t11_df.empty:
+        html_blocks.append(_to_html(t11_df, "T11: RL-Family & Cross-Model Progression (Paired Item Transitions)", _TABLE_CAPTIONS["T11"]))
 
     if "T2_by_dataset" in merged:
         df = pd.concat(merged["T2_by_dataset"], ignore_index=True)

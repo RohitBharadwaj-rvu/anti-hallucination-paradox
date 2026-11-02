@@ -437,45 +437,50 @@ class APIRouter:
 
         raw_text, answer_text, usage = _invoke(messages)
 
-        # If reasoning model truncated mid-thought (answer_text is empty, thinking_text non-empty),
-        # retry once with an explicit anti-overthinking instruction to get a clean final answer.
-        if not answer_text.strip() and usage.get("thinking_text"):
-            logger.info("Target truncated mid-CoT without final answer; retrying with concise instruction.")
-            retry_msgs = [
-                messages[0],
-                {
-                    "role": "user",
-                    "content": (
-                        messages[-1]["content"]
-                        + "\n\n[IMPORTANT: Do not overthink. Output your final concise answer immediately in a few words.]"
-                    ),
-                },
-            ]
+        # If reasoning model truncated mid-thought OR returned an empty answer on the first try,
+        # retry once (with explicit anti-overthinking instruction if CoT truncated).
+        if not answer_text.strip():
+            if usage.get("thinking_text"):
+                logger.info("Target truncated mid-CoT without final answer; retrying with concise instruction.")
+                retry_msgs = [
+                    messages[0],
+                    {
+                        "role": "user",
+                        "content": (
+                            messages[-1]["content"]
+                            + "\n\n[IMPORTANT: Do not overthink. Output your final concise answer immediately in a few words.]"
+                        ),
+                    },
+                ]
+            else:
+                logger.debug("Empty response from target on first try; retrying once.")
+                retry_msgs = messages
+
             raw_text2, answer_text2, usage2 = _invoke(retry_msgs)
-            if answer_text2.strip():
-                # Keep original thinking trace if second call had none, and sum token usage
-                kept_think = usage2.get("thinking_text") or usage.get("thinking_text", "")
-                raw_text = raw_text2
-                answer_text = answer_text2
-                usage = {
-                    "prompt_tokens": usage.get("prompt_tokens", 0) + usage2.get("prompt_tokens", 0),
-                    "completion_tokens": usage2.get("completion_tokens", 0),
-                    "total_tokens": usage.get("total_tokens", 0) + usage2.get("total_tokens", 0),
-                    "thinking_text": kept_think,
-                }
+            kept_think = usage2.get("thinking_text") or usage.get("thinking_text", "")
+            raw_text = raw_text2 or raw_text
+            answer_text = answer_text2
+            usage = {
+                "prompt_tokens": usage.get("prompt_tokens", 0) + usage2.get("prompt_tokens", 0),
+                "completion_tokens": usage.get("completion_tokens", 0) + usage2.get("completion_tokens", 0),
+                "total_tokens": usage.get("total_tokens", 0) + usage2.get("total_tokens", 0),
+                "thinking_text": kept_think,
+            }
 
         raw_completion_tokens = usage.get("completion_tokens", 0)
+        raw_total_tokens = usage.get("total_tokens", 0)
         usage["raw_completion_tokens"] = raw_completion_tokens
+        usage["raw_total_tokens"] = raw_total_tokens
         thinking_text = usage.get("thinking_text", "")
 
-        if thinking_text and raw_text:
+        if thinking_text:
             full_combined = f"{thinking_text}\n{answer_text}"
             answer_tokens = count_answer_tokens(full_combined, answer_text, raw_completion_tokens)
             usage["completion_tokens"] = answer_tokens
             usage["total_tokens"] = usage.get("prompt_tokens", 0) + answer_tokens
             self.budget.add(provider, usage["total_tokens"])
         else:
-            self.budget.add(provider, usage.get("total_tokens", 0))
+            self.budget.add(provider, raw_total_tokens)
 
         return answer_text, usage
 

@@ -1,5 +1,7 @@
 runs:
   - name: fw_glm_5p2
+    family: GLM
+    rl_stage: 1
     target:
       provider: fireworks
       model_id: accounts/fireworks/models/glm-5p2
@@ -7,7 +9,19 @@ runs:
       provider: lmstudio
       model_id: qwen2.5-7b-instruct
 
+  - name: fw_glm_5p3
+    family: GLM
+    rl_stage: 2
+    target:
+      provider: fireworks
+      model_id: accounts/fireworks/models/glm-5p3
+    judge:
+      provider: lmstudio
+      model_id: qwen2.5-7b-instruct
+
   - name: fw_kimi_k2p7_code
+    family: Kimi
+    rl_stage: 1
     target:
       provider: fireworks
       model_id: accounts/fireworks/models/kimi-k2p7-code
@@ -15,7 +29,19 @@ runs:
       provider: lmstudio
       model_id: qwen2.5-7b-instruct
 
+  - name: fw_minimax_3p1_flash
+    family: MiniMax
+    rl_stage: 1
+    target:
+      provider: fireworks
+      model_id: accounts/fireworks/models/minimax-3p1-flash
+    judge:
+      provider: lmstudio
+      model_id: qwen2.5-7b-instruct
+
   - name: fw_minimax_m3
+    family: MiniMax
+    rl_stage: 2
     target:
       provider: fireworks
       model_id: accounts/fireworks/models/minimax-m3
@@ -27,3 +53,4 @@ runs:
 # lmstudio->LMSTUDIO_API_KEY if non-empty else literal "lm-studio" (never empty).
 # Provider->base_url: nim->NVIDIA_BASE_URL, fireworks->FIREWORKS_BASE_URL, lmstudio->LMSTUDIO_BASE_URL.
 # Provider->billed: nim/fireworks=True, lmstudio=False (excluded from budget + cost estimate).
+

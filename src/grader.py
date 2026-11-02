@@ -78,10 +78,16 @@ _RAW_PATTERNS = [
     r"i (?:cannot|can'?t) (?:confirm|determine|verify|provide|recall)\b",
     r"could you (?:please )?(?:specify|clarify|provide more context)",
     r"please (?:specify|clarify|provide more context) which",
+    # Ambiguity / clarification abstentions (when model refuses to guess on underspecified questions)
+    r"i need more context",
+    r"the question is (?:too vague|ambiguous|unclear)",
+    r"is too vague to (?:answer|identify)",
+    r"which ['\"][^'\"]+['\"] (?:do you mean|are you referring to)",
+    r"question (?:doesn'?t|does not) specify which",
 ]
 
 _REFUSAL_REGEXES = [
-    re.compile((p if p.startswith("^") else r"\b" + p) + r"\b", re.IGNORECASE)
+    re.compile((p if p.startswith("^") else r"\b" + p) + (r"" if p.endswith(("'", "\"")) else r"\b"), re.IGNORECASE)
     for p in _RAW_PATTERNS
 ]
 
@@ -177,7 +183,13 @@ def judge_false(router: Any, item: dict, response_text: str) -> tuple[str, float
     Returns (label, total_judge_latency_ms).
     label in {CORRECTED, HALLUCINATED, JUDGE_ERROR}.
     """
-    explanation = item.get("explanation") or "The premise is false."
+    # FalseQA stores why the premise is false in expected_answers (when explanation is None).
+    expected_ans = item.get("expected_answers") or []
+    fallback_expl = "; ".join(
+        str(a) for a in expected_ans
+        if str(a).strip().lower() not in ("i do not know", "i don't know", "")
+    )
+    explanation = item.get("explanation") or fallback_expl or "The premise is false."
     messages = [
         {"role": "system", "content": JUDGE_FALSE_SYS},
         {
@@ -251,6 +263,8 @@ def _is_exact_gold_match(item: dict, text: str) -> bool:
             continue
         if norm_resp == norm_ans:
             return True
+        if len(norm_ans) >= 4 and norm_ans in norm_resp and "defeating " + norm_ans not in norm_resp:
+            return True
     return False
 
 
@@ -281,8 +295,12 @@ def grade(router: Any, item: dict, response_text: str) -> tuple[str, float]:
         else:
             return REFUSED, 0.0
 
-    # 3. Route to judge
+    # 3. Route to judge (with post-judge deterministic gold-patch safeguard for true premise)
     if item["premise"]:
-        return judge_factual(router, item, text)
+        label, lat = judge_factual(router, item, text)
+        if label in (INCORRECT, JUDGE_ERROR) and _is_exact_gold_match(item, text):
+            return CORRECT, lat
+        return label, lat
     else:
         return judge_false(router, item, text)
+
