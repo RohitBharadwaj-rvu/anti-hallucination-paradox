@@ -1,0 +1,6 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+or_glm_5p3,SimpleQA,0.0,,1,0
+or_glm_5p3,PopQA,1.0,,1,0
+or_glm_5p3,Bamboogle,0.0,,1,0
+or_glm_5p3,FalseQA,,1.0,0,1
+or_glm_5p3,MultiHoax,,1.0,0,1

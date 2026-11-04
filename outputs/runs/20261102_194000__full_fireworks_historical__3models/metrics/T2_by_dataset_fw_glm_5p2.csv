@@ -1,0 +1,6 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+fw_glm_5p2,SimpleQA,0.2631578947368421,,25,0
+fw_glm_5p2,PopQA,0.4583333333333333,,25,0
+fw_glm_5p2,Bamboogle,0.95,,20,0
+fw_glm_5p2,FalseQA,0.6,0.8,5,10
+fw_glm_5p2,MultiHoax,,0.6666666666666666,0,15

@@ -1,0 +1,36 @@
+{
+  "run_id": "20261103_071515__full_model3_minimax_m2p5__or_minimax_3p1_flash",
+  "timestamp_utc": "20261103_071515",
+  "mode": "full",
+  "run_tag": "model3_minimax_m2p5",
+  "is_partial": false,
+  "models": [
+    "or_minimax_3p1_flash"
+  ],
+  "total_rows_by_model": {
+    "or_minimax_3p1_flash": 364
+  },
+  "archive_dir": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_071515__full_model3_minimax_m2p5__or_minimax_3p1_flash",
+  "archive_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_071515__full_model3_minimax_m2p5__or_minimax_3p1_flash\\report.html",
+  "mode_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\report_full_or_minimax_3p1_flash_model3_minimax_m2p5.html",
+  "run_metadata": [
+    {
+      "run_name": "or_minimax_3p1_flash",
+      "target_model": "minimax/minimax-m3.1-flash",
+      "target_provider": "openrouter",
+      "family": "MiniMax",
+      "rl_stage": 1,
+      "judge_model": "google/gemma-4-e4b",
+      "judge_provider": "lmstudio",
+      "lmstudio_base_url": "http://localhost:1234/v1",
+      "mode": "full",
+      "start_time": "2026-11-03T06:11:26Z",
+      "end_time": "2026-11-03T07:15:11Z",
+      "total_target_calls": 396,
+      "total_judge_calls": 290,
+      "approx_cloud_tokens": 717253,
+      "budget_fraction": "14.3%",
+      "mean_judge_latency_ms": 13101.60433404256
+    }
+  ]
+}

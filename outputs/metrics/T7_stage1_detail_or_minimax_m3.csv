@@ -1,0 +1,2 @@
+model,n_triggered_true,n_triggered_false,n_recovered_true,n_recovered_false,recovery_rate_true,recovery_rate_false,recovery_lift_true
+or_minimax_m3,38,7,2,1,0.05263157894736842,0.14285714285714285,0.05263157894736842

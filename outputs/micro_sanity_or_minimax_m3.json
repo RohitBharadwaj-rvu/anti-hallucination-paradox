@@ -1,0 +1,35 @@
+{
+  "run_name": "or_minimax_m3",
+  "stages_seen": {
+    "('s0', 'neutral')": 5,
+    "('s1', 'recovery')": 1,
+    "('s2', 'permissive')": 5,
+    "('s2', 'conservative')": 5
+  },
+  "true_labels": [
+    "CORRECT",
+    "INCORRECT",
+    "REFUSAL"
+  ],
+  "false_labels": [
+    "CORRECTED",
+    "HALLUCINATED",
+    "REFUSED"
+  ],
+  "judge_health": {
+    "judge_calls": 11,
+    "parse_failures": 0,
+    "judge_errors": 0,
+    "mean_latency_ms": 4878.532763636403,
+    "median_latency_ms": 827.3073999998815
+  },
+  "router_total_judge_calls": 12,
+  "router_mean_judge_latency_ms": 4878.532763636403,
+  "lmstudio_reachable": true,
+  "loaded_models": [
+    "google/gemma-4-e4b",
+    "text-embedding-nomic-embed-text-v1.5"
+  ],
+  "resolved_judge_model": "google/gemma-4-e4b",
+  "sanity_pass": true
+}

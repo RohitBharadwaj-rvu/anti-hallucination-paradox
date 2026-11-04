@@ -1,0 +1,4 @@
+model,level,refusal_rate_true,correct_rate_true,incorrect_rate_true,hallucination_rate_false,calibration_success_false
+or_minimax_3p1_flash,permissive,0.0,0.3333333333333333,0.6666666666666666,1.0,0.0
+or_minimax_3p1_flash,neutral,0.0,0.3333333333333333,0.6666666666666666,0.5,0.5
+or_minimax_3p1_flash,conservative,0.0,0.3333333333333333,0.6666666666666666,0.5,0.5

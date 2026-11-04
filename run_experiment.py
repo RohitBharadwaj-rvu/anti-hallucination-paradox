@@ -73,10 +73,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--target-provider",
-        choices=["nim", "fireworks"],
+        choices=["nim", "fireworks", "openrouter"],
         default=None,
         metavar="PROVIDER",
-        help="Single-run override: target provider (nim or fireworks).",
+        help="Single-run override: target provider (nim, fireworks, or openrouter).",
     )
     p.add_argument(
         "--target-model",
@@ -86,7 +86,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--judge-provider",
-        choices=["nim", "fireworks", "lmstudio"],
+        choices=["nim", "fireworks", "openrouter", "lmstudio"],
         default=None,
         metavar="PROVIDER",
         help="Single-run override: judge provider (default lmstudio).",
@@ -127,6 +127,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--retry-truncated",
         action="store_true",
         help="Purge previously truncated/empty CoT or JUDGE_ERROR checkpoint entries so they are re-queried.",
+    )
+    p.add_argument(
+        "--run-tag",
+        default=None,
+        metavar="TAG",
+        help="Optional custom tag/name for this run's archive folder and report (e.g. 'sanity_v1' or 'final_full').",
     )
     p.add_argument(
         "--log-level",
@@ -184,7 +190,7 @@ def main() -> int:
 
     if args.target_provider and args.target_model:
         judge_provider = args.judge_provider or "lmstudio"
-        judge_model = args.judge_model or "qwen2.5-7b-instruct"
+        judge_model = args.judge_model or "google/gemma-4-e4b"
         ad_hoc_run_name = args.run_name or f"adhoc__{args.target_model.replace('/', '_')}"
         runs_raw = [{
             "name": ad_hoc_run_name,
@@ -236,6 +242,7 @@ def main() -> int:
             no_resume=args.no_resume,
             limit=args.limit,
             retry_truncated=args.retry_truncated,
+            run_tag=args.run_tag,
         )
     except KeyboardInterrupt:
         log.info("\nInterrupted by user. Checkpoints are safe; re-run to resume.")

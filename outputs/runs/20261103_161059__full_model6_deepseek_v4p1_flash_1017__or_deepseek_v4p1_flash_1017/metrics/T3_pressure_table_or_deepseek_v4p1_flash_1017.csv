@@ -1,0 +1,4 @@
+model,level,refusal_rate_true,correct_rate_true,incorrect_rate_true,hallucination_rate_false,calibration_success_false
+or_deepseek_v4p1_flash_1017,permissive,0.0,0.5866666666666667,0.41333333333333333,0.72,0.28
+or_deepseek_v4p1_flash_1017,neutral,0.04,0.56,0.4,0.24,0.76
+or_deepseek_v4p1_flash_1017,conservative,0.32,0.5333333333333333,0.14666666666666667,0.12,0.88

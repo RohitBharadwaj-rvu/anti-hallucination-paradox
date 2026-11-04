@@ -1,0 +1,2 @@
+model,sample_id,question,expected_answers,model_response,judge_verdict
+or_glm_5p2,benchmark_063,The third largest river (by discharge) in the world is in what countries?,['India and Bangladesh'],"The Orinoco, generally ranked third by discharge (after the Amazon and Congo), flows through Venezuela and Colombia.",INCORRECT

@@ -1,0 +1,2 @@
+model,latent_knowledge_rate,correct_rate_true,refusal_rate_true,incorrect_rate_true,calibration_success_false,hallucination_rate_false,recovery_rate_true,recovery_rate_false,suppression_proxy,true_suppression_rate,calibrated_abstention_rate,induced_halluc_proxy,mcnemar_refusal_p,n_total
+fw_kimi_k2p7_code,0.64,0.6027397260273972,0.1232876712328767,0.273972602739726,0.7894736842105263,0.21052631578947367,0.10344827586206896,0.0,0.3611111111111111,0.12,0.24,0.5513784461152882,2.9802322387695312e-08,100

@@ -1,0 +1,2 @@
+model,latent_knowledge_rate,robust_recall_rate,true_suppression_rate,retrieval_failure_rate,calibrated_abstention_rate,uncalibrated_ignorance_rate,true_suppression_share_of_cons_ref,s0_fail_recovered_or_suppressed_rate,epistemic_efficiency_ratio,mcnemar_refusal_p,mcnemar_accuracy_p
+or_minimax_m3,0.5866666666666667,0.38666666666666666,0.16,0.04,0.36,0.05333333333333334,0.3076923076923077,0.18421052631578946,1.5833333333333333,3.637978807091713e-12,0.03857421875

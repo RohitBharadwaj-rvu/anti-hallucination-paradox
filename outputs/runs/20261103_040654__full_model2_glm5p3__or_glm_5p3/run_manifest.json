@@ -1,0 +1,36 @@
+{
+  "run_id": "20261103_040654__full_model2_glm5p3__or_glm_5p3",
+  "timestamp_utc": "20261103_040654",
+  "mode": "full",
+  "run_tag": "model2_glm5p3",
+  "is_partial": false,
+  "models": [
+    "or_glm_5p3"
+  ],
+  "total_rows_by_model": {
+    "or_glm_5p3": 337
+  },
+  "archive_dir": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_040654__full_model2_glm5p3__or_glm_5p3",
+  "archive_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_040654__full_model2_glm5p3__or_glm_5p3\\report.html",
+  "mode_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\report_full_or_glm_5p3_model2_glm5p3.html",
+  "run_metadata": [
+    {
+      "run_name": "or_glm_5p3",
+      "target_model": "z-ai/glm-5.3",
+      "target_provider": "openrouter",
+      "family": "GLM",
+      "rl_stage": 2,
+      "judge_model": "google/gemma-4-e4b",
+      "judge_provider": "lmstudio",
+      "lmstudio_base_url": "http://localhost:1234/v1",
+      "mode": "full",
+      "start_time": "2026-11-03T03:37:34Z",
+      "end_time": "2026-11-03T04:06:51Z",
+      "total_target_calls": 341,
+      "total_judge_calls": 158,
+      "approx_cloud_tokens": 162072,
+      "budget_fraction": "3.2%",
+      "mean_judge_latency_ms": 11139.29971999996
+    }
+  ]
+}

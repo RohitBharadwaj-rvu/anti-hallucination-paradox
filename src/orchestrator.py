@@ -16,8 +16,12 @@ Trigger conditions:
 import json
 import os
 import re
+import shutil
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -130,6 +134,10 @@ def _clean_and_regrade_row(row: dict, item_map: dict[str, dict]) -> dict:
     if premise and r.get("label") in (INCORRECT, JUDGE_ERROR):
         if _is_exact_gold_match(r, resp):
             r["label"] = CORRECT
+        elif r.get("label") == JUDGE_ERROR:
+            golds_low = [str(g).strip().lower() for g in (r.get("expected_answers") or []) if str(g).strip()]
+            if not any(g in resp.lower() for g in golds_low):
+                r["label"] = INCORRECT
 
     # Case 4: False-premise JUDGE_ERROR where model asserted a specific entity (e.g. benchmark_092 Xiwangmu)
     if not premise and r.get("label") == JUDGE_ERROR and len(resp) < 300:
@@ -140,6 +148,12 @@ def _clean_and_regrade_row(row: dict, item_map: dict[str, dict]) -> dict:
     if not premise and sid == "benchmark_075" and r.get("label") == CORRECTED:
         if "champagne" not in resp.lower() and "wine" not in resp.lower():
             r["label"] = HALLUCINATED
+
+    # Case 6: Bamboogle benchmark_056 ("Who was the father of the father of behaviorism?", gold: Pickens Butler Watson)
+    # where local judge truncated mid-<thought> and misgraded "the elder John Watson" as CORRECT
+    if premise and sid == "benchmark_056" and r.get("label") == CORRECT:
+        if "pickens" not in resp.lower() and "butler" not in resp.lower():
+            r["label"] = INCORRECT
 
     # Ensure judge_called reflects actual judge invocation
     r["judge_called"] = (
@@ -157,6 +171,7 @@ def run_regrade(
     checkpoint_dir: str,
     graded_dir: str,
     drop_truncated_from_checkpoints: bool = False,
+    run_tag: str | None = None,
 ) -> None:
     """
     Offline regrade & clean of existing checkpoints and graded JSONL files.
@@ -233,11 +248,17 @@ def run_regrade(
         budget_limit_map = {
             "nim": settings.budget.get("nim_max_tokens", 900_000),
             "fireworks": settings.budget.get("fireworks_max_tokens", 2_000_000),
+            "openrouter": settings.budget.get("openrouter_max_tokens", 5_000_000),
         }
         budget_limit = budget_limit_map.get(run_cfg["target"]["provider"], 1)
         budget_fraction_str = (
             f"{persisted_cloud_tokens / budget_limit:.1%}" if budget_limit > 0 else "N/A"
         )
+
+        # Detect whether this graded file is micro (<=25 rows) or full
+        detected_mode = "micro" if len(cleaned_rows) <= 25 else "full"
+        mode_graded_path = str(Path(graded_dir) / f"{rn}__{detected_mode}__graded.jsonl")
+        write_jsonl(mode_graded_path, cleaned_rows)
 
         run_metadata_list.append({
             "run_name": rn,
@@ -248,7 +269,7 @@ def run_regrade(
             "judge_model": run_cfg["judge"]["model_id"],
             "judge_provider": run_cfg["judge"]["provider"],
             "lmstudio_base_url": get_base_url("lmstudio") if run_cfg["judge"]["provider"] == "lmstudio" else "N/A",
-            "mode": "full (cleaned/regraded)",
+            "mode": f"{detected_mode} (cleaned/regraded)",
             "start_time": now_iso(),
             "end_time": now_iso(),
             "total_target_calls": persisted_target_calls,
@@ -274,6 +295,17 @@ def run_regrade(
             runs_cfg=runs,
         )
         logger.info("Regraded report written to %s", report_path)
+        batch_mode = "micro" if all(len(r) <= 25 for r in all_runs_rows.values()) else "full"
+        archive_run_record(
+            all_runs_rows=all_runs_rows,
+            all_model_results=all_model_results,
+            run_metadata_list=run_metadata_list,
+            runs_cfg=runs,
+            output_dir=output_dir,
+            mode=batch_mode,
+            is_partial=False,
+            run_tag=run_tag or "regraded",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -443,20 +475,26 @@ def run_one_target(
 
     is_partial = False
     total_skipped = 0
+    state_lock = threading.Lock()
+    from src import grader as grader_mod
 
-    # -----------------------------------------------------------------------
-    # Main per-item loop
-    # -----------------------------------------------------------------------
-    for item in items:
+    def _process_one_item(item: dict) -> None:
+        nonlocal is_partial, total_skipped
+        with state_lock:
+            if is_partial:
+                return
         sid = item["sample_id"]
 
         # ---- Stage 0 / Stage-2 NEUTRAL ----
         key_s0 = make_key(run_name, sid, "s0", "neutral")
-        if key_s0 in completed_keys and sid in existing_neutral:
-            existing_row = existing_neutral.get(sid)
+        with state_lock:
+            already_s0 = key_s0 in completed_keys and sid in existing_neutral
+            existing_row = existing_neutral.get(sid) if already_s0 else None
+        if already_s0:
             label0 = existing_row.get("label") if existing_row else None
             resp0 = existing_row.get("response_text", "") if existing_row else ""
-            total_skipped += 1
+            with state_lock:
+                total_skipped += 1
         else:
             messages = [
                 {"role": "system", "content": TARGET_STANDARD},
@@ -467,25 +505,26 @@ def run_one_target(
                 resp0, usage0 = router.call_target(messages)
             except BudgetExceeded as e:
                 logger.error("Budget exceeded: %s", e)
-                is_partial = True
-                break
+                with state_lock:
+                    is_partial = True
+                return
             except Exception as e:
                 logger.error("Target call failed for %s s0: %s", sid, e)
                 resp0 = ""
                 usage0 = {}
 
-            judge_calls_before0 = router.total_judge_calls()
             label0, judge_latency_ms0 = grade(router, item, resp0)
-            judge_api_calls0 = router.total_judge_calls() - judge_calls_before0
+            judge_api_calls0 = getattr(grader_mod._thread_local, "last_judge_api_calls", 0)
             row0 = _build_row(
                 run_name, item, "s0", "neutral", resp0, label0, usage0, judge_latency_ms0, mode,
                 judge_api_calls0,
             )
-            all_rows.append(row0)
-            existing_neutral[sid] = row0
             append_checkpoint(cp_s0, {**row0, "key": key_s0})
             append_checkpoint(graded_path, row0)
-            completed_keys.add(key_s0)
+            with state_lock:
+                all_rows.append(row0)
+                existing_neutral[sid] = row0
+                completed_keys.add(key_s0)
 
         # ---- Stage 1 (triggered) ----
         trigger = TRUE_TRIGGER if item["premise"] else FALSE_TRIGGER
@@ -495,14 +534,16 @@ def run_one_target(
         resp1 = ""
         if should_trigger:
             key_s1 = make_key(run_name, sid, "s1", "recovery")
-            if key_s1 in completed_keys:
-                for r in all_rows:
-                    if r.get("sample_id") == sid and r.get("level") == "recovery":
-                        label1 = r.get("label")
-                        resp1 = r.get("response_text", "")
-                        break
-                total_skipped += 1
-            else:
+            with state_lock:
+                already_s1 = key_s1 in completed_keys
+                if already_s1:
+                    for r in all_rows:
+                        if r.get("sample_id") == sid and r.get("level") == "recovery":
+                            label1 = r.get("label")
+                            resp1 = r.get("response_text", "")
+                            break
+                    total_skipped += 1
+            if not already_s1:
                 messages1 = [
                     {"role": "system", "content": TARGET_RECOVERY},
                     {"role": "user", "content": item["question"]},
@@ -512,31 +553,35 @@ def run_one_target(
                     resp1, usage1 = router.call_target(messages1)
                 except BudgetExceeded as e:
                     logger.error("Budget exceeded: %s", e)
-                    is_partial = True
-                    break
+                    with state_lock:
+                        is_partial = True
+                    return
                 except Exception as e:
                     logger.error("Target call failed for %s s1: %s", sid, e)
                     resp1 = ""
                     usage1 = {}
 
-                judge_calls_before1 = router.total_judge_calls()
                 label1, judge_latency_ms1 = grade(router, item, resp1)
-                judge_api_calls1 = router.total_judge_calls() - judge_calls_before1
+                judge_api_calls1 = getattr(grader_mod._thread_local, "last_judge_api_calls", 0)
                 row1 = _build_row(
                     run_name, item, "s1", "recovery", resp1, label1, usage1, judge_latency_ms1, mode,
                     judge_api_calls1,
                 )
-                all_rows.append(row1)
                 append_checkpoint(cp_s1, {**row1, "key": key_s1})
                 append_checkpoint(graded_path, row1)
-                completed_keys.add(key_s1)
+                with state_lock:
+                    all_rows.append(row1)
+                    completed_keys.add(key_s1)
 
         # ---- Stage 2: PERMISSIVE + CONSERVATIVE ----
         for level, prompt in [("permissive", TARGET_PERMISSIVE), ("conservative", TARGET_CONSERVATIVE)]:
-            key_s2 = make_key(run_name, sid, "s2", level)
-            if key_s2 in completed_keys:
-                total_skipped += 1
-                continue
+            with state_lock:
+                if is_partial:
+                    return
+                key_s2 = make_key(run_name, sid, "s2", level)
+                if key_s2 in completed_keys:
+                    total_skipped += 1
+                    continue
             messages2 = [
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": item["question"]},
@@ -546,36 +591,63 @@ def run_one_target(
                 resp2, usage2 = router.call_target(messages2)
             except BudgetExceeded as e:
                 logger.error("Budget exceeded: %s", e)
-                is_partial = True
-                break
+                with state_lock:
+                    is_partial = True
+                return
             except Exception as e:
                 logger.error("Target call failed for %s s2 %s: %s", sid, level, e)
                 resp2 = ""
                 usage2 = {}
 
-            judge_calls_before2 = router.total_judge_calls()
             label2, judge_latency_ms2 = grade(router, item, resp2)
-            judge_api_calls2 = router.total_judge_calls() - judge_calls_before2
+            judge_api_calls2 = getattr(grader_mod._thread_local, "last_judge_api_calls", 0)
             row2 = _build_row(
                 run_name, item, "s2", level, resp2, label2, usage2, judge_latency_ms2, mode,
                 judge_api_calls2,
             )
-            all_rows.append(row2)
             append_checkpoint(cp_s2, {**row2, "key": key_s2})
             append_checkpoint(graded_path, row2)
-            completed_keys.add(key_s2)
-
-        if is_partial:
-            break
+            with state_lock:
+                all_rows.append(row2)
+                completed_keys.add(key_s2)
 
         key_s2_neutral = make_key(run_name, sid, "s2", "neutral")
-        completed_keys.add(key_s2_neutral)
+        with state_lock:
+            completed_keys.add(key_s2_neutral)
+
+    # -----------------------------------------------------------------------
+    # Main per-item execution (concurrent across items when concurrency_target > 1)
+    # -----------------------------------------------------------------------
+    conc_target = max(1, int(getattr(settings, "concurrency_target", 1)))
+    if conc_target <= 1:
+        for item in items:
+            if is_partial:
+                break
+            _process_one_item(item)
+    else:
+        logger.info("Running with concurrency_target=%d workers (judge serialized at %d)", conc_target, int(getattr(settings, "concurrency_judge", 1)))
+        with ThreadPoolExecutor(max_workers=conc_target) as pool:
+            futures = [pool.submit(_process_one_item, item) for item in items]
+            for fut in as_completed(futures):
+                fut.result()
 
     if total_skipped > 0:
         logger.info("Skipped %d already-completed keys.", total_skipped)
 
-    # Deduplicate and enrich neutral rows with label_s1
+    # Sort canonically by (sample_id, stage, level), deduplicate, and enrich neutral rows with label_s1
+    stage_order = {"s0": 0, "s1": 1, "s2": 2}
+    level_order = {"neutral": 0, "recovery": 1, "permissive": 2, "conservative": 3}
+    all_rows.sort(key=lambda r: (
+        r.get("sample_id", ""),
+        stage_order.get(r.get("stage", "s0"), 9),
+        level_order.get(r.get("level", "neutral"), 9),
+    ))
     all_rows = metrics_mod.deduplicate_rows(all_rows)
+
+    # Persist deduplicated & label_s1-enriched rows back to graded_path AND mode-scoped graded path
+    write_jsonl(graded_path, all_rows)
+    mode_graded_path = str(Path(graded_dir) / f"{run_name}__{mode}__graded.jsonl")
+    write_jsonl(mode_graded_path, all_rows)
 
     # Compute metrics
     model_results = None
@@ -670,10 +742,7 @@ def _write_prompt_audit(path: str, run_name: str, sample_id: str, level: str, me
         "level": level,
         "messages": messages,
     }
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "a", encoding="utf-8") as f:
-        f.write(json.dumps(record, ensure_ascii=False) + "\n")
-        f.flush()
+    append_checkpoint(path, record)
 
 
 # ---------------------------------------------------------------------------
@@ -772,11 +841,27 @@ def _print_sanity_report(
         "resolved_judge_model": router.resolved_judge_model,
         "sanity_pass": sanity_pass,
     }
-    sanity_path = str(Path(output_dir) / "micro_sanity.json")
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    with open(sanity_path, "w", encoding="utf-8") as f:
+    per_model_sanity_path = str(Path(output_dir) / f"micro_sanity_{run_name}.json")
+    with open(per_model_sanity_path, "w", encoding="utf-8") as f:
         json.dump(sanity_data, f, indent=2)
-    print(f"\nSanity report written to {sanity_path}")
+
+    sanity_path = str(Path(output_dir) / "micro_sanity.json")
+    existing_all_sanity = {}
+    if Path(sanity_path).exists():
+        try:
+            loaded_s = json.loads(Path(sanity_path).read_text(encoding="utf-8"))
+            existing_all_sanity = loaded_s.get("runs_by_name", {})
+            if "run_name" in loaded_s and loaded_s["run_name"] not in existing_all_sanity:
+                prev_copy = {k: v for k, v in loaded_s.items() if k != "runs_by_name"}
+                existing_all_sanity[loaded_s["run_name"]] = prev_copy
+        except Exception:
+            existing_all_sanity = {}
+    existing_all_sanity[run_name] = sanity_data
+    combined_sanity = {**sanity_data, "runs_by_name": existing_all_sanity}
+    with open(sanity_path, "w", encoding="utf-8") as f:
+        json.dump(combined_sanity, f, indent=2)
+    print(f"\nSanity report written to {per_model_sanity_path} (and {sanity_path})")
     print("="*70 + "\n")
 
 
@@ -814,6 +899,141 @@ def _print_observed_cost(
 
 
 # ---------------------------------------------------------------------------
+# Run Record Archiver — saves every run under its own distinct name & folder
+# ---------------------------------------------------------------------------
+
+def archive_run_record(
+    all_runs_rows: dict[str, list[dict]],
+    all_model_results: dict[str, dict],
+    run_metadata_list: list[dict],
+    runs_cfg: list[dict],
+    output_dir: str,
+    mode: str,
+    is_partial: bool = False,
+    run_tag: str | None = None,
+    timestamp_override: str | None = None,
+) -> str | None:
+    """
+    Save a permanent, self-contained record of a pipeline execution under `outputs/runs/<run_id>/`,
+    plus mode-named and per-model named HTML reports so no run ever overwrites another.
+    Updates `outputs/runs/runs_index.json` and `outputs/runs/README.md`.
+    """
+    if not all_runs_rows:
+        return None
+
+    ts = timestamp_override or datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    clean_mode = re.sub(r"[^a-zA-Z0-9_-]+", "_", mode).strip("_")
+    tag_suffix = f"_{re.sub(r'[^a-zA-Z0-9_-]+', '_', run_tag).strip('_')}" if run_tag else ""
+    models_slug = "_".join(all_runs_rows.keys()) if len(all_runs_rows) <= 2 else f"{len(all_runs_rows)}models"
+    run_id = f"{ts}__{clean_mode}{tag_suffix}__{models_slug}"
+
+    out_root = Path(output_dir)
+    runs_root = out_root / "runs"
+    archive_dir = runs_root / run_id
+    archive_graded_dir = archive_dir / "graded"
+    ensure_dirs(str(archive_dir), str(archive_graded_dir), str(out_root / "reports"))
+
+    # 1. Build self-contained report inside outputs/runs/<run_id>/report.html
+    archive_report_path = reporter_mod.build(
+        all_runs_rows=all_runs_rows,
+        all_model_results=all_model_results,
+        run_metadata_list=run_metadata_list,
+        output_dir=str(archive_dir),
+        mode=mode,
+        is_partial=is_partial,
+        report_filename="report.html",
+        all_rows_by_run=all_runs_rows,
+        runs_cfg=runs_cfg,
+    )
+
+    # 2. Save graded JSONLs inside the archive folder
+    for rn, rows in all_runs_rows.items():
+        write_jsonl(str(archive_graded_dir / f"{rn}__graded.jsonl"), rows)
+
+    # 3. Also build mode-scoped report at outputs/report_<mode>[_<model>][_<tag>].html
+    single_model_part = f"_{list(all_runs_rows.keys())[0]}" if len(all_runs_rows) == 1 else ""
+    mode_report_name = f"report_{clean_mode}{single_model_part}{tag_suffix}.html"
+    reporter_mod.build(
+        all_runs_rows=all_runs_rows,
+        all_model_results=all_model_results,
+        run_metadata_list=run_metadata_list,
+        output_dir=output_dir,
+        mode=mode,
+        is_partial=is_partial,
+        report_filename=mode_report_name,
+        all_rows_by_run=all_runs_rows,
+        runs_cfg=runs_cfg,
+    )
+
+    # 4. Build individual per-model reports in outputs/reports/report_<run_name>__<mode>.html
+    cfg_by_name = {r["name"]: r for r in runs_cfg if "name" in r}
+    meta_by_name = {m["run_name"]: m for m in run_metadata_list if "run_name" in m}
+    for rn, rows in all_runs_rows.items():
+        if rn in all_model_results:
+            single_cfg = [cfg_by_name[rn]] if rn in cfg_by_name else []
+            single_meta = [meta_by_name[rn]] if rn in meta_by_name else []
+            reporter_mod.build(
+                all_runs_rows={rn: rows},
+                all_model_results={rn: all_model_results[rn]},
+                run_metadata_list=single_meta,
+                output_dir=str(out_root / "reports"),
+                mode=mode,
+                is_partial=is_partial,
+                report_filename=f"report_{rn}__{clean_mode}{tag_suffix}.html",
+                all_rows_by_run={rn: rows},
+                runs_cfg=single_cfg,
+            )
+
+    # 5. Write run_manifest.json and update runs_index.json + README.md
+    manifest = {
+        "run_id": run_id,
+        "timestamp_utc": ts,
+        "mode": mode,
+        "run_tag": run_tag or "",
+        "is_partial": is_partial,
+        "models": list(all_runs_rows.keys()),
+        "total_rows_by_model": {rn: len(rows) for rn, rows in all_runs_rows.items()},
+        "archive_dir": str(archive_dir),
+        "archive_report": str(archive_report_path),
+        "mode_report": str(out_root / mode_report_name),
+        "run_metadata": run_metadata_list,
+    }
+    (archive_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+    index_path = runs_root / "runs_index.json"
+    index_list = []
+    if index_path.exists():
+        try:
+            index_list = json.loads(index_path.read_text(encoding="utf-8"))
+        except Exception:
+            index_list = []
+    index_list = [e for e in index_list if e.get("run_id") != run_id]
+    index_list.append(manifest)
+    index_path.write_text(json.dumps(index_list, indent=2), encoding="utf-8")
+
+    # Generate human-readable outputs/runs/README.md
+    md_lines = [
+        "# Anti-Hallucination Paradox — Recorded Runs History",
+        "",
+        "Every pipeline run is automatically archived in its own folder under `outputs/runs/` so no run overwrites previous results.",
+        "",
+        "| Run ID | Mode | Tag | Models | Rows per Model | Archive Report |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- |",
+    ]
+    for entry in index_list:
+        rid = entry["run_id"]
+        m_str = ", ".join(f"`{m}`" for m in entry.get("models", []))
+        r_counts = ", ".join(f"{k}: {v}" for k, v in entry.get("total_rows_by_model", {}).items())
+        md_lines.append(
+            f"| `{rid}` | `{entry.get('mode')}` | `{entry.get('run_tag') or '—'}` | {m_str} | {r_counts} | [`{rid}/report.html`](./{rid}/report.html) |"
+        )
+    (runs_root / "README.md").write_text("\n".join(md_lines) + "\n", encoding="utf-8")
+
+    logger.info("Archived full run record to %s", archive_dir)
+    return str(archive_dir)
+
+
+# ---------------------------------------------------------------------------
 # Top-level run function
 # ---------------------------------------------------------------------------
 
@@ -829,6 +1049,7 @@ def run(
     no_resume: bool = False,
     limit: int | None = None,
     retry_truncated: bool = False,
+    run_tag: str | None = None,
 ) -> None:
     """Top-level run dispatcher."""
     settings = _build_settings(settings_raw)
@@ -856,6 +1077,7 @@ def run(
             checkpoint_dir=checkpoint_dir,
             graded_dir=graded_dir,
             drop_truncated_from_checkpoints=retry_truncated,
+            run_tag=run_tag,
         )
         return
 
@@ -921,6 +1143,7 @@ def run(
         budget_limit_map = {
             "nim": settings.budget.get("nim_max_tokens", 900_000),
             "fireworks": settings.budget.get("fireworks_max_tokens", 2_000_000),
+            "openrouter": settings.budget.get("openrouter_max_tokens", 5_000_000),
         }
         budget_limit = budget_limit_map.get(run_cfg["target"]["provider"], 1)
         budget_fraction_str = (
@@ -964,6 +1187,16 @@ def run(
                 runs_cfg=runs_filtered,
             )
             logger.info("Report written to %s", report_path)
+            archive_run_record(
+                all_runs_rows=all_runs_rows,
+                all_model_results=all_model_results,
+                run_metadata_list=run_metadata_list,
+                runs_cfg=runs_filtered,
+                output_dir=output_dir,
+                mode=mode,
+                is_partial=any_partial,
+                run_tag=run_tag,
+            )
         except Exception as e:
             logger.error("Reporter failed: %s", e, exc_info=True)
     else:

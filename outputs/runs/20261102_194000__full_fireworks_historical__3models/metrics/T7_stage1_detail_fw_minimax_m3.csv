@@ -1,0 +1,2 @@
+model,n_triggered_true,n_triggered_false,n_recovered_true,n_recovered_false,recovery_rate_true,recovery_rate_false,recovery_lift_true
+fw_minimax_m3,41,4,1,0,0.024390243902439025,0.0,0.024390243902439025

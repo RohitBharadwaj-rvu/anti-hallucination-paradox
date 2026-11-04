@@ -1,0 +1,6 @@
+model,answer_type,correct_rate_true,n_true
+or_glm_5p2,Number,0.0,1
+or_glm_5p2,religion,1.0,1
+or_glm_5p2,Other,1.0,1
+or_glm_5p2,Correction,,0
+or_glm_5p2,Food_Drink,,0

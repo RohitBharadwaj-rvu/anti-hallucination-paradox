@@ -1,0 +1,6 @@
+model,answer_type,correct_rate_true,n_true
+or_minimax_m3,Number,0.0,1
+or_minimax_m3,religion,1.0,1
+or_minimax_m3,Other,1.0,1
+or_minimax_m3,Correction,,0
+or_minimax_m3,Food_Drink,,0

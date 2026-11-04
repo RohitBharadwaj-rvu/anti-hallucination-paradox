@@ -1,0 +1,6 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+fw_kimi_k2p7_code,SimpleQA,0.34782608695652173,,25,0
+fw_kimi_k2p7_code,PopQA,0.52,,25,0
+fw_kimi_k2p7_code,Bamboogle,1.0,,20,0
+fw_kimi_k2p7_code,FalseQA,0.6,0.9,5,10
+fw_kimi_k2p7_code,MultiHoax,,0.6666666666666666,0,15

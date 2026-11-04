@@ -1,0 +1,2 @@
+model,judge_calls,parse_failures,judge_errors,mean_latency_ms,median_latency_ms
+or_minimax_m3,160,0,0,13219.958519375063,13191.165099997306

@@ -1,0 +1,23 @@
+model,answer_type,correct_rate_true,n_true
+or_minimax_3p1_flash,Number,0.0,2
+or_minimax_3p1_flash,Other,0.39285714285714285,29
+or_minimax_3p1_flash,Person,0.0,3
+or_minimax_3p1_flash,Date,0.0,6
+or_minimax_3p1_flash,Place,0.2,5
+or_minimax_3p1_flash,producer,0.5,4
+or_minimax_3p1_flash,director,0.2,5
+or_minimax_3p1_flash,religion,0.5,2
+or_minimax_3p1_flash,composer,0.3333333333333333,3
+or_minimax_3p1_flash,place of birth,0.0,2
+or_minimax_3p1_flash,screenwriter,0.0,1
+or_minimax_3p1_flash,genre,0.0,3
+or_minimax_3p1_flash,capital,1.0,1
+or_minimax_3p1_flash,father,1.0,1
+or_minimax_3p1_flash,capital of,1.0,1
+or_minimax_3p1_flash,author,0.0,2
+or_minimax_3p1_flash,Correction,0.8,5
+or_minimax_3p1_flash,Food_Drink,,0
+or_minimax_3p1_flash,Language_or_Nationality_or_Country,,0
+or_minimax_3p1_flash,Date_or_Time_Period,,0
+or_minimax_3p1_flash,Artwork,,0
+or_minimax_3p1_flash,Common_noun,,0

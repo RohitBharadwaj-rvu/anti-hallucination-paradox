@@ -1,0 +1,5 @@
+model,premise,hop,accuracy_metric,accuracy_value,n
+fw_glm_5p2,False,multi,calibration_success_false,0.6666666666666666,15
+fw_glm_5p2,False,single,calibration_success_false,0.8,10
+fw_glm_5p2,True,multi,correct_rate_true,0.95,20
+fw_glm_5p2,True,single,correct_rate_true,0.3958333333333333,55

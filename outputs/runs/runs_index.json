@@ -1,0 +1,662 @@
+[
+  {
+    "run_id": "20261103_025552__micro_sanity_cleaned__4models",
+    "timestamp_utc": "20261103_025552",
+    "mode": "micro",
+    "run_tag": "sanity_cleaned",
+    "is_partial": false,
+    "models": [
+      "or_glm_5p2",
+      "or_glm_5p3",
+      "or_minimax_3p1_flash",
+      "or_minimax_m3"
+    ],
+    "total_rows_by_model": {
+      "or_glm_5p2": 16,
+      "or_glm_5p3": 17,
+      "or_minimax_3p1_flash": 18,
+      "or_minimax_m3": 16
+    },
+    "archive_dir": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_025552__micro_sanity_cleaned__4models",
+    "archive_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_025552__micro_sanity_cleaned__4models\\report.html",
+    "mode_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\report_micro_sanity_cleaned.html",
+    "run_metadata": [
+      {
+        "run_name": "or_glm_5p2",
+        "target_model": "z-ai/glm-5.2",
+        "target_provider": "openrouter",
+        "family": "GLM",
+        "rl_stage": 1,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "micro (cleaned/regraded)",
+        "start_time": "2026-11-03T02:55:47Z",
+        "end_time": "2026-11-03T02:55:47Z",
+        "total_target_calls": 16,
+        "total_judge_calls": 16,
+        "approx_cloud_tokens": 7093,
+        "budget_fraction": "0.1%",
+        "mean_judge_latency_ms": 12086.02163333334
+      },
+      {
+        "run_name": "or_glm_5p3",
+        "target_model": "z-ai/glm-5.3",
+        "target_provider": "openrouter",
+        "family": "GLM",
+        "rl_stage": 2,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "micro (cleaned/regraded)",
+        "start_time": "2026-11-03T02:55:47Z",
+        "end_time": "2026-11-03T02:55:47Z",
+        "total_target_calls": 17,
+        "total_judge_calls": 16,
+        "approx_cloud_tokens": 5922,
+        "budget_fraction": "0.1%",
+        "mean_judge_latency_ms": 9607.607600000012
+      },
+      {
+        "run_name": "or_minimax_3p1_flash",
+        "target_model": "minimax/minimax-m3.1-flash",
+        "target_provider": "openrouter",
+        "family": "MiniMax",
+        "rl_stage": 1,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "micro (cleaned/regraded)",
+        "start_time": "2026-11-03T02:55:48Z",
+        "end_time": "2026-11-03T02:55:48Z",
+        "total_target_calls": 18,
+        "total_judge_calls": 27,
+        "approx_cloud_tokens": 38508,
+        "budget_fraction": "0.8%",
+        "mean_judge_latency_ms": 10502.239966666695
+      },
+      {
+        "run_name": "or_minimax_m3",
+        "target_model": "minimax/minimax-m3",
+        "target_provider": "openrouter",
+        "family": "MiniMax",
+        "rl_stage": 2,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "micro (cleaned/regraded)",
+        "start_time": "2026-11-03T02:55:48Z",
+        "end_time": "2026-11-03T02:55:48Z",
+        "total_target_calls": 16,
+        "total_judge_calls": 12,
+        "approx_cloud_tokens": 13415,
+        "budget_fraction": "0.3%",
+        "mean_judge_latency_ms": 4878.532763636403
+      }
+    ]
+  },
+  {
+    "run_id": "20261102_194000__full_fireworks_historical__3models",
+    "timestamp_utc": "20261102_194000",
+    "mode": "full",
+    "run_tag": "fireworks_historical",
+    "is_partial": false,
+    "models": [
+      "fw_glm_5p2",
+      "fw_kimi_k2p7_code",
+      "fw_minimax_m3"
+    ],
+    "total_rows_by_model": {
+      "fw_glm_5p2": 344,
+      "fw_kimi_k2p7_code": 340,
+      "fw_minimax_m3": 349
+    },
+    "archive_dir": "outputs\\runs\\20261102_194000__full_fireworks_historical__3models",
+    "archive_report": "outputs\\runs\\20261102_194000__full_fireworks_historical__3models\\report.html",
+    "mode_report": "outputs\\report_full_fireworks_historical.html",
+    "run_metadata": [
+      {
+        "run_name": "fw_glm_5p2",
+        "target_model": "accounts/fireworks/models/glm-5",
+        "target_provider": "fireworks",
+        "family": "glm",
+        "rl_stage": "sft_early_rl",
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://127.0.0.1:1234/v1",
+        "mode": "full (historical Fireworks run)",
+        "start_time": "2026-11-02T19:40:00Z",
+        "end_time": "2026-11-02T22:15:00Z",
+        "total_target_calls": 344,
+        "total_judge_calls": 394,
+        "approx_cloud_tokens": 329647,
+        "budget_fraction": "16.5%",
+        "mean_judge_latency_ms": 3338.804617872898
+      },
+      {
+        "run_name": "fw_kimi_k2p7_code",
+        "target_model": "accounts/fireworks/models/kimi-k2p5",
+        "target_provider": "fireworks",
+        "family": "kimi",
+        "rl_stage": "heavy_rl",
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://127.0.0.1:1234/v1",
+        "mode": "full (historical Fireworks run)",
+        "start_time": "2026-11-02T19:40:00Z",
+        "end_time": "2026-11-02T22:15:00Z",
+        "total_target_calls": 340,
+        "total_judge_calls": 416,
+        "approx_cloud_tokens": 295473,
+        "budget_fraction": "14.8%",
+        "mean_judge_latency_ms": 3159.064895038196
+      },
+      {
+        "run_name": "fw_minimax_m3",
+        "target_model": "accounts/fireworks/models/minimax-m2p5",
+        "target_provider": "fireworks",
+        "family": "minimax",
+        "rl_stage": "heavy_rl",
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://127.0.0.1:1234/v1",
+        "mode": "full (historical Fireworks run)",
+        "start_time": "2026-11-02T19:40:00Z",
+        "end_time": "2026-11-02T22:15:00Z",
+        "total_target_calls": 349,
+        "total_judge_calls": 443,
+        "approx_cloud_tokens": 250305,
+        "budget_fraction": "12.5%",
+        "mean_judge_latency_ms": 3141.3474126527685
+      }
+    ]
+  },
+  {
+    "run_id": "20261103_033601__full_model1_glm5p2__or_glm_5p2",
+    "timestamp_utc": "20261103_033601",
+    "mode": "full",
+    "run_tag": "model1_glm5p2",
+    "is_partial": false,
+    "models": [
+      "or_glm_5p2"
+    ],
+    "total_rows_by_model": {
+      "or_glm_5p2": 336
+    },
+    "archive_dir": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_033601__full_model1_glm5p2__or_glm_5p2",
+    "archive_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_033601__full_model1_glm5p2__or_glm_5p2\\report.html",
+    "mode_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\report_full_or_glm_5p2_model1_glm5p2.html",
+    "run_metadata": [
+      {
+        "run_name": "or_glm_5p2",
+        "target_model": "z-ai/glm-5.2",
+        "target_provider": "openrouter",
+        "family": "GLM",
+        "rl_stage": 1,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full",
+        "start_time": "2026-11-03T03:08:15Z",
+        "end_time": "2026-11-03T03:35:58Z",
+        "total_target_calls": 355,
+        "total_judge_calls": 142,
+        "approx_cloud_tokens": 376008,
+        "budget_fraction": "7.5%",
+        "mean_judge_latency_ms": 11589.991441304364
+      }
+    ]
+  },
+  {
+    "run_id": "20261103_040654__full_model2_glm5p3__or_glm_5p3",
+    "timestamp_utc": "20261103_040654",
+    "mode": "full",
+    "run_tag": "model2_glm5p3",
+    "is_partial": false,
+    "models": [
+      "or_glm_5p3"
+    ],
+    "total_rows_by_model": {
+      "or_glm_5p3": 337
+    },
+    "archive_dir": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_040654__full_model2_glm5p3__or_glm_5p3",
+    "archive_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_040654__full_model2_glm5p3__or_glm_5p3\\report.html",
+    "mode_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\report_full_or_glm_5p3_model2_glm5p3.html",
+    "run_metadata": [
+      {
+        "run_name": "or_glm_5p3",
+        "target_model": "z-ai/glm-5.3",
+        "target_provider": "openrouter",
+        "family": "GLM",
+        "rl_stage": 2,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full",
+        "start_time": "2026-11-03T03:37:34Z",
+        "end_time": "2026-11-03T04:06:51Z",
+        "total_target_calls": 341,
+        "total_judge_calls": 158,
+        "approx_cloud_tokens": 162072,
+        "budget_fraction": "3.2%",
+        "mean_judge_latency_ms": 11139.29971999996
+      }
+    ]
+  },
+  {
+    "run_id": "20261103_071515__full_model3_minimax_m2p5__or_minimax_3p1_flash",
+    "timestamp_utc": "20261103_071515",
+    "mode": "full",
+    "run_tag": "model3_minimax_m2p5",
+    "is_partial": false,
+    "models": [
+      "or_minimax_3p1_flash"
+    ],
+    "total_rows_by_model": {
+      "or_minimax_3p1_flash": 364
+    },
+    "archive_dir": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_071515__full_model3_minimax_m2p5__or_minimax_3p1_flash",
+    "archive_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_071515__full_model3_minimax_m2p5__or_minimax_3p1_flash\\report.html",
+    "mode_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\report_full_or_minimax_3p1_flash_model3_minimax_m2p5.html",
+    "run_metadata": [
+      {
+        "run_name": "or_minimax_3p1_flash",
+        "target_model": "minimax/minimax-m3.1-flash",
+        "target_provider": "openrouter",
+        "family": "MiniMax",
+        "rl_stage": 1,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full",
+        "start_time": "2026-11-03T06:11:26Z",
+        "end_time": "2026-11-03T07:15:11Z",
+        "total_target_calls": 396,
+        "total_judge_calls": 290,
+        "approx_cloud_tokens": 717253,
+        "budget_fraction": "14.3%",
+        "mean_judge_latency_ms": 13101.60433404256
+      }
+    ]
+  },
+  {
+    "run_id": "20261103_141042__full_model4_minimax_m3__or_minimax_m3",
+    "timestamp_utc": "20261103_141042",
+    "mode": "full",
+    "run_tag": "model4_minimax_m3",
+    "is_partial": false,
+    "models": [
+      "or_minimax_m3"
+    ],
+    "total_rows_by_model": {
+      "or_minimax_m3": 345
+    },
+    "archive_dir": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_141042__full_model4_minimax_m3__or_minimax_m3",
+    "archive_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_141042__full_model4_minimax_m3__or_minimax_m3\\report.html",
+    "mode_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\report_full_or_minimax_m3_model4_minimax_m3.html",
+    "run_metadata": [
+      {
+        "run_name": "or_minimax_m3",
+        "target_model": "minimax/minimax-m3",
+        "target_provider": "openrouter",
+        "family": "MiniMax",
+        "rl_stage": 2,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full",
+        "start_time": "2026-11-03T13:32:33Z",
+        "end_time": "2026-11-03T14:10:34Z",
+        "total_target_calls": 347,
+        "total_judge_calls": 168,
+        "approx_cloud_tokens": 303154,
+        "budget_fraction": "6.1%",
+        "mean_judge_latency_ms": 13219.958519375063
+      }
+    ]
+  },
+  {
+    "run_id": "20261103_152030__full_model5_deepseek_v4p1_flash__or_deepseek_v4p1_flash",
+    "timestamp_utc": "20261103_152030",
+    "mode": "full",
+    "run_tag": "model5_deepseek_v4p1_flash",
+    "is_partial": false,
+    "models": [
+      "or_deepseek_v4p1_flash"
+    ],
+    "total_rows_by_model": {
+      "or_deepseek_v4p1_flash": 337
+    },
+    "archive_dir": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_152030__full_model5_deepseek_v4p1_flash__or_deepseek_v4p1_flash",
+    "archive_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_152030__full_model5_deepseek_v4p1_flash__or_deepseek_v4p1_flash\\report.html",
+    "mode_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\report_full_or_deepseek_v4p1_flash_model5_deepseek_v4p1_flash.html",
+    "run_metadata": [
+      {
+        "run_name": "or_deepseek_v4p1_flash",
+        "target_model": "deepseek/deepseek-v4.1-flash",
+        "target_provider": "openrouter",
+        "family": "DeepSeek",
+        "rl_stage": 1,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full",
+        "start_time": "2026-11-03T14:40:11Z",
+        "end_time": "2026-11-03T15:20:25Z",
+        "total_target_calls": 344,
+        "total_judge_calls": 197,
+        "approx_cloud_tokens": 388617,
+        "budget_fraction": "7.8%",
+        "mean_judge_latency_ms": 11997.683048730722
+      }
+    ]
+  },
+  {
+    "run_id": "20261103_161059__full_model6_deepseek_v4p1_flash_1017__or_deepseek_v4p1_flash_1017",
+    "timestamp_utc": "20261103_161059",
+    "mode": "full",
+    "run_tag": "model6_deepseek_v4p1_flash_1017",
+    "is_partial": false,
+    "models": [
+      "or_deepseek_v4p1_flash_1017"
+    ],
+    "total_rows_by_model": {
+      "or_deepseek_v4p1_flash_1017": 339
+    },
+    "archive_dir": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_161059__full_model6_deepseek_v4p1_flash_1017__or_deepseek_v4p1_flash_1017",
+    "archive_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_161059__full_model6_deepseek_v4p1_flash_1017__or_deepseek_v4p1_flash_1017\\report.html",
+    "mode_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\report_full_or_deepseek_v4p1_flash_1017_model6_deepseek_v4p1_flash_1017.html",
+    "run_metadata": [
+      {
+        "run_name": "or_deepseek_v4p1_flash_1017",
+        "target_model": "deepseek/deepseek-v4.1-flash-1017",
+        "target_provider": "openrouter",
+        "family": "DeepSeek",
+        "rl_stage": 2,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full",
+        "start_time": "2026-11-03T15:30:59Z",
+        "end_time": "2026-11-03T16:10:52Z",
+        "total_target_calls": 339,
+        "total_judge_calls": 185,
+        "approx_cloud_tokens": 161137,
+        "budget_fraction": "3.2%",
+        "mean_judge_latency_ms": 13001.4793873626
+      }
+    ]
+  },
+  {
+    "run_id": "20261103_165016__full_final_all_6_models__6models",
+    "timestamp_utc": "20261103_165016",
+    "mode": "full",
+    "run_tag": "final_all_6_models",
+    "is_partial": false,
+    "models": [
+      "or_glm_5p2",
+      "or_glm_5p3",
+      "or_minimax_3p1_flash",
+      "or_minimax_m3",
+      "or_deepseek_v4p1_flash",
+      "or_deepseek_v4p1_flash_1017"
+    ],
+    "total_rows_by_model": {
+      "or_glm_5p2": 336,
+      "or_glm_5p3": 337,
+      "or_minimax_3p1_flash": 364,
+      "or_minimax_m3": 345,
+      "or_deepseek_v4p1_flash": 337,
+      "or_deepseek_v4p1_flash_1017": 339
+    },
+    "archive_dir": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_165016__full_final_all_6_models__6models",
+    "archive_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_165016__full_final_all_6_models__6models\\report.html",
+    "mode_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\report_full_final_all_6_models.html",
+    "run_metadata": [
+      {
+        "run_name": "or_glm_5p2",
+        "target_model": "z-ai/glm-5.2",
+        "target_provider": "openrouter",
+        "family": "GLM",
+        "rl_stage": 1,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full (cleaned/regraded)",
+        "start_time": "2026-11-03T16:50:09Z",
+        "end_time": "2026-11-03T16:50:09Z",
+        "total_target_calls": 336,
+        "total_judge_calls": 142,
+        "approx_cloud_tokens": 376008,
+        "budget_fraction": "7.5%",
+        "mean_judge_latency_ms": 11589.991441304364
+      },
+      {
+        "run_name": "or_glm_5p3",
+        "target_model": "z-ai/glm-5.3",
+        "target_provider": "openrouter",
+        "family": "GLM",
+        "rl_stage": 2,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full (cleaned/regraded)",
+        "start_time": "2026-11-03T16:50:09Z",
+        "end_time": "2026-11-03T16:50:09Z",
+        "total_target_calls": 337,
+        "total_judge_calls": 158,
+        "approx_cloud_tokens": 162072,
+        "budget_fraction": "3.2%",
+        "mean_judge_latency_ms": 11139.29971999996
+      },
+      {
+        "run_name": "or_minimax_3p1_flash",
+        "target_model": "minimax/minimax-m3.1-flash",
+        "target_provider": "openrouter",
+        "family": "MiniMax",
+        "rl_stage": 1,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full (cleaned/regraded)",
+        "start_time": "2026-11-03T16:50:10Z",
+        "end_time": "2026-11-03T16:50:10Z",
+        "total_target_calls": 364,
+        "total_judge_calls": 290,
+        "approx_cloud_tokens": 717253,
+        "budget_fraction": "14.3%",
+        "mean_judge_latency_ms": 13101.60433404256
+      },
+      {
+        "run_name": "or_minimax_m3",
+        "target_model": "minimax/minimax-m3",
+        "target_provider": "openrouter",
+        "family": "MiniMax",
+        "rl_stage": 2,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full (cleaned/regraded)",
+        "start_time": "2026-11-03T16:50:10Z",
+        "end_time": "2026-11-03T16:50:10Z",
+        "total_target_calls": 345,
+        "total_judge_calls": 168,
+        "approx_cloud_tokens": 303154,
+        "budget_fraction": "6.1%",
+        "mean_judge_latency_ms": 13219.958519375063
+      },
+      {
+        "run_name": "or_deepseek_v4p1_flash",
+        "target_model": "deepseek/deepseek-v4.1-flash",
+        "target_provider": "openrouter",
+        "family": "DeepSeek",
+        "rl_stage": 1,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full (cleaned/regraded)",
+        "start_time": "2026-11-03T16:50:10Z",
+        "end_time": "2026-11-03T16:50:10Z",
+        "total_target_calls": 337,
+        "total_judge_calls": 197,
+        "approx_cloud_tokens": 388617,
+        "budget_fraction": "7.8%",
+        "mean_judge_latency_ms": 11997.683048730722
+      },
+      {
+        "run_name": "or_deepseek_v4p1_flash_1017",
+        "target_model": "deepseek/deepseek-v4.1-flash-1017",
+        "target_provider": "openrouter",
+        "family": "DeepSeek",
+        "rl_stage": 2,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full (cleaned/regraded)",
+        "start_time": "2026-11-03T16:50:10Z",
+        "end_time": "2026-11-03T16:50:10Z",
+        "total_target_calls": 339,
+        "total_judge_calls": 185,
+        "approx_cloud_tokens": 161137,
+        "budget_fraction": "3.2%",
+        "mean_judge_latency_ms": 13001.4793873626
+      }
+    ]
+  },
+  {
+    "run_id": "20261103_170804__full_final_all_6_models_cleaned__6models",
+    "timestamp_utc": "20261103_170804",
+    "mode": "full",
+    "run_tag": "final_all_6_models_cleaned",
+    "is_partial": false,
+    "models": [
+      "or_glm_5p2",
+      "or_glm_5p3",
+      "or_minimax_3p1_flash",
+      "or_minimax_m3",
+      "or_deepseek_v4p1_flash",
+      "or_deepseek_v4p1_flash_1017"
+    ],
+    "total_rows_by_model": {
+      "or_glm_5p2": 336,
+      "or_glm_5p3": 337,
+      "or_minimax_3p1_flash": 364,
+      "or_minimax_m3": 345,
+      "or_deepseek_v4p1_flash": 337,
+      "or_deepseek_v4p1_flash_1017": 339
+    },
+    "archive_dir": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_170804__full_final_all_6_models_cleaned__6models",
+    "archive_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_170804__full_final_all_6_models_cleaned__6models\\report.html",
+    "mode_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\report_full_final_all_6_models_cleaned.html",
+    "run_metadata": [
+      {
+        "run_name": "or_glm_5p2",
+        "target_model": "z-ai/glm-5.2",
+        "target_provider": "openrouter",
+        "family": "GLM",
+        "rl_stage": 1,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full (cleaned/regraded)",
+        "start_time": "2026-11-03T17:07:56Z",
+        "end_time": "2026-11-03T17:07:56Z",
+        "total_target_calls": 336,
+        "total_judge_calls": 142,
+        "approx_cloud_tokens": 376008,
+        "budget_fraction": "7.5%",
+        "mean_judge_latency_ms": 11589.991441304364
+      },
+      {
+        "run_name": "or_glm_5p3",
+        "target_model": "z-ai/glm-5.3",
+        "target_provider": "openrouter",
+        "family": "GLM",
+        "rl_stage": 2,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full (cleaned/regraded)",
+        "start_time": "2026-11-03T17:07:56Z",
+        "end_time": "2026-11-03T17:07:56Z",
+        "total_target_calls": 337,
+        "total_judge_calls": 158,
+        "approx_cloud_tokens": 162072,
+        "budget_fraction": "3.2%",
+        "mean_judge_latency_ms": 11139.29971999996
+      },
+      {
+        "run_name": "or_minimax_3p1_flash",
+        "target_model": "minimax/minimax-m3.1-flash",
+        "target_provider": "openrouter",
+        "family": "MiniMax",
+        "rl_stage": 1,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full (cleaned/regraded)",
+        "start_time": "2026-11-03T17:07:56Z",
+        "end_time": "2026-11-03T17:07:56Z",
+        "total_target_calls": 364,
+        "total_judge_calls": 290,
+        "approx_cloud_tokens": 717253,
+        "budget_fraction": "14.3%",
+        "mean_judge_latency_ms": 13101.60433404256
+      },
+      {
+        "run_name": "or_minimax_m3",
+        "target_model": "minimax/minimax-m3",
+        "target_provider": "openrouter",
+        "family": "MiniMax",
+        "rl_stage": 2,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full (cleaned/regraded)",
+        "start_time": "2026-11-03T17:07:57Z",
+        "end_time": "2026-11-03T17:07:57Z",
+        "total_target_calls": 345,
+        "total_judge_calls": 168,
+        "approx_cloud_tokens": 303154,
+        "budget_fraction": "6.1%",
+        "mean_judge_latency_ms": 13219.958519375063
+      },
+      {
+        "run_name": "or_deepseek_v4p1_flash",
+        "target_model": "deepseek/deepseek-v4.1-flash",
+        "target_provider": "openrouter",
+        "family": "DeepSeek",
+        "rl_stage": 1,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full (cleaned/regraded)",
+        "start_time": "2026-11-03T17:07:57Z",
+        "end_time": "2026-11-03T17:07:57Z",
+        "total_target_calls": 337,
+        "total_judge_calls": 197,
+        "approx_cloud_tokens": 388617,
+        "budget_fraction": "7.8%",
+        "mean_judge_latency_ms": 11997.683048730722
+      },
+      {
+        "run_name": "or_deepseek_v4p1_flash_1017",
+        "target_model": "deepseek/deepseek-v4.1-flash-1017",
+        "target_provider": "openrouter",
+        "family": "DeepSeek",
+        "rl_stage": 2,
+        "judge_model": "google/gemma-4-e4b",
+        "judge_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "mode": "full (cleaned/regraded)",
+        "start_time": "2026-11-03T17:07:57Z",
+        "end_time": "2026-11-03T17:07:57Z",
+        "total_target_calls": 339,
+        "total_judge_calls": 185,
+        "approx_cloud_tokens": 161137,
+        "budget_fraction": "3.2%",
+        "mean_judge_latency_ms": 13001.4793873626
+      }
+    ]
+  }
+]

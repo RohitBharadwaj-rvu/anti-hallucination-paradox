@@ -1,0 +1,2 @@
+model,latent_knowledge_rate,correct_rate_true,refusal_rate_true,incorrect_rate_true,calibration_success_false,hallucination_rate_false,recovery_rate_true,recovery_rate_false,suppression_proxy,true_suppression_rate,calibrated_abstention_rate,induced_halluc_proxy,mcnemar_refusal_p,n_total
+fw_minimax_m3,0.5333333333333333,0.4533333333333333,0.3466666666666667,0.2,0.76,0.24,0.024390243902439025,0.0,0.49333333333333335,0.09333333333333334,0.41333333333333333,0.76,1.4551915228366852e-11,100

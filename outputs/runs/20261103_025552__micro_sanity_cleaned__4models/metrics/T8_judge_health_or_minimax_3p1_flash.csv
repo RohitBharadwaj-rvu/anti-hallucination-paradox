@@ -1,0 +1,2 @@
+model,judge_calls,parse_failures,judge_errors,mean_latency_ms,median_latency_ms
+or_minimax_3p1_flash,18,0,0,10502.239966666695,13958.224900000005

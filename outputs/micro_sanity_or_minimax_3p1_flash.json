@@ -1,0 +1,33 @@
+{
+  "run_name": "or_minimax_3p1_flash",
+  "stages_seen": {
+    "('s0', 'neutral')": 5,
+    "('s1', 'recovery')": 3,
+    "('s2', 'permissive')": 5,
+    "('s2', 'conservative')": 5
+  },
+  "true_labels": [
+    "CORRECT",
+    "INCORRECT"
+  ],
+  "false_labels": [
+    "CORRECTED",
+    "HALLUCINATED"
+  ],
+  "judge_health": {
+    "judge_calls": 18,
+    "parse_failures": 0,
+    "judge_errors": 0,
+    "mean_latency_ms": 10502.239966666695,
+    "median_latency_ms": 13958.224900000005
+  },
+  "router_total_judge_calls": 27,
+  "router_mean_judge_latency_ms": 10502.239966666695,
+  "lmstudio_reachable": true,
+  "loaded_models": [
+    "google/gemma-4-e4b",
+    "text-embedding-nomic-embed-text-v1.5"
+  ],
+  "resolved_judge_model": "google/gemma-4-e4b",
+  "sanity_pass": true
+}

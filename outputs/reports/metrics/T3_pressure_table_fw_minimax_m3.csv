@@ -1,0 +1,4 @@
+model,level,refusal_rate_true,correct_rate_true,incorrect_rate_true,hallucination_rate_false,calibration_success_false
+fw_minimax_m3,permissive,0.0,0.52,0.48,0.84,0.16
+fw_minimax_m3,neutral,0.3466666666666667,0.4533333333333333,0.2,0.24,0.76
+fw_minimax_m3,conservative,0.49333333333333335,0.44,0.06666666666666667,0.08,0.92

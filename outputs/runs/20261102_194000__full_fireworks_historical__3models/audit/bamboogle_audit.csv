@@ -1,0 +1,4 @@
+model,sample_id,question,expected_answers,model_response,judge_verdict
+fw_glm_5p2,benchmark_051,When was the philosopher that formulated the hard problem of consciousness born?,"['April 20, 1966']","February 20, 1966",INCORRECT
+fw_minimax_m3,benchmark_058,Who was the second wife of the founder of CNN?,['Jane Shirley Smith'],Jane Fonda.,INCORRECT
+fw_minimax_m3,benchmark_063,The third largest river (by discharge) in the world is in what countries?,['India and Bangladesh'],"The third largest river by discharge is the **Yangtze River**, which flows through **China**.",INCORRECT

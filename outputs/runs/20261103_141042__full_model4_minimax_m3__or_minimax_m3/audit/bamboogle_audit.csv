@@ -1,0 +1,3 @@
+model,sample_id,question,expected_answers,model_response,judge_verdict
+or_minimax_m3,benchmark_058,Who was the second wife of the founder of CNN?,['Jane Shirley Smith'],Jane Fonda.,INCORRECT
+or_minimax_m3,benchmark_063,The third largest river (by discharge) in the world is in what countries?,['India and Bangladesh'],China.,INCORRECT

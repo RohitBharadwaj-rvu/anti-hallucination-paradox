@@ -1,4 +1,6 @@
 patches:
+  benchmark_030:
+    expected_answers: ["Eastern Orthodox Church", "Eastern Orthodox Christianity", "Eastern Orthodoxy", "Eastern Church", "Orthodox Church", "Orthodox Catholic Church", "Greek Church", "Eastern Orthodox communion", "Church of the Seven Councils"]
   benchmark_066:
     expected_answers: ["James Cameron"]      # source typo "James Cameroon" -> fix
   benchmark_037:

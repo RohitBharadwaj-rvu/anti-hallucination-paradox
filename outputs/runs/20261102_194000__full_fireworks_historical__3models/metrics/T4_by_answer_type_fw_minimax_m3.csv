@@ -1,0 +1,23 @@
+model,answer_type,correct_rate_true,n_true
+fw_minimax_m3,Number,0.0,2
+fw_minimax_m3,Other,0.6896551724137931,29
+fw_minimax_m3,Person,0.0,3
+fw_minimax_m3,Date,0.16666666666666666,6
+fw_minimax_m3,Place,0.2,5
+fw_minimax_m3,producer,0.5,4
+fw_minimax_m3,director,0.4,5
+fw_minimax_m3,religion,0.5,2
+fw_minimax_m3,composer,0.3333333333333333,3
+fw_minimax_m3,place of birth,0.0,2
+fw_minimax_m3,screenwriter,0.0,1
+fw_minimax_m3,genre,0.0,3
+fw_minimax_m3,capital,1.0,1
+fw_minimax_m3,father,1.0,1
+fw_minimax_m3,capital of,1.0,1
+fw_minimax_m3,author,0.0,2
+fw_minimax_m3,Correction,0.6,5
+fw_minimax_m3,Food_Drink,,0
+fw_minimax_m3,Language_or_Nationality_or_Country,,0
+fw_minimax_m3,Date_or_Time_Period,,0
+fw_minimax_m3,Artwork,,0
+fw_minimax_m3,Common_noun,,0

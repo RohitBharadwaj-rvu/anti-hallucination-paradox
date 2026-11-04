@@ -1,0 +1,3 @@
+model,sample_id,question,expected_answers,model_response,judge_verdict
+or_deepseek_v4p1_flash_1017,benchmark_056,Who was the father of the father of behaviorism?,['Pickens Butler Watson'],"John Watson — the father of John B. Watson, the founder of behaviorism.",INCORRECT
+or_deepseek_v4p1_flash_1017,benchmark_070,Who is the father of the father of modern experimental psychology?,['Maximilian Wundt'],Karl Friedrich Wundt (Wilhelm Wundt’s father).,INCORRECT

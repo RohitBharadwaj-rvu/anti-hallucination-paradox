@@ -1,0 +1,2 @@
+model,n_triggered_true,n_triggered_false,n_recovered_true,n_recovered_false,recovery_rate_true,recovery_rate_false,recovery_lift_true
+fw_glm_5p2,30,5,7,2,0.23333333333333334,0.4,0.23333333333333334

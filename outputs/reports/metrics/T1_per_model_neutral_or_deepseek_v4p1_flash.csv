@@ -1,0 +1,2 @@
+model,latent_knowledge_rate,correct_rate_true,refusal_rate_true,incorrect_rate_true,calibration_success_false,hallucination_rate_false,recovery_rate_true,recovery_rate_false,suppression_proxy,true_suppression_rate,calibrated_abstention_rate,induced_halluc_proxy,mcnemar_refusal_p,n_total
+or_deepseek_v4p1_flash,0.6666666666666666,0.6133333333333333,0.013333333333333334,0.37333333333333335,0.68,0.32,0.0,0.25,0.16,0.05333333333333334,0.10666666666666667,0.5599999999999999,0.00048828125,100

@@ -1,0 +1,6 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+or_deepseek_v4p1_flash_1017,SimpleQA,0.28,,25,0
+or_deepseek_v4p1_flash_1017,PopQA,0.56,,25,0
+or_deepseek_v4p1_flash_1017,Bamboogle,0.9,,20,0
+or_deepseek_v4p1_flash_1017,FalseQA,0.6,1.0,5,10
+or_deepseek_v4p1_flash_1017,MultiHoax,,0.6,0,15

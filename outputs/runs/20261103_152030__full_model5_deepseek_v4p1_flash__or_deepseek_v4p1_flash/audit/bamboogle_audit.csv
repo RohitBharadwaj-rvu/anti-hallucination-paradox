@@ -1,0 +1,2 @@
+model,sample_id,question,expected_answers,model_response,judge_verdict
+or_deepseek_v4p1_flash,benchmark_058,Who was the second wife of the founder of CNN?,['Jane Shirley Smith'],Jane Fonda.,INCORRECT

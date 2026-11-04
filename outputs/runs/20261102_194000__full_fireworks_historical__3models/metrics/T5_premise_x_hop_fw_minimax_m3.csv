@@ -1,0 +1,5 @@
+model,premise,hop,accuracy_metric,accuracy_value,n
+fw_minimax_m3,False,multi,calibration_success_false,0.7333333333333333,15
+fw_minimax_m3,False,single,calibration_success_false,0.8,10
+fw_minimax_m3,True,multi,correct_rate_true,0.9,20
+fw_minimax_m3,True,single,correct_rate_true,0.2909090909090909,55

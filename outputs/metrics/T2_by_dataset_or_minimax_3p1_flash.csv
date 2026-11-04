@@ -1,0 +1,6 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+or_minimax_3p1_flash,SimpleQA,0.08333333333333333,,25,0
+or_minimax_3p1_flash,PopQA,0.32,,25,0
+or_minimax_3p1_flash,Bamboogle,0.5,,20,0
+or_minimax_3p1_flash,FalseQA,0.8,0.6,5,10
+or_minimax_3p1_flash,MultiHoax,,0.21428571428571427,0,15

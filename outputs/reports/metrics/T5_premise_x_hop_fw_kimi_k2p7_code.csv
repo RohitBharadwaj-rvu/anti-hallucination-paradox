@@ -1,0 +1,5 @@
+model,premise,hop,accuracy_metric,accuracy_value,n
+fw_kimi_k2p7_code,False,multi,calibration_success_false,0.6666666666666666,15
+fw_kimi_k2p7_code,False,single,calibration_success_false,0.9,10
+fw_kimi_k2p7_code,True,multi,correct_rate_true,1.0,20
+fw_kimi_k2p7_code,True,single,correct_rate_true,0.4528301886792453,55

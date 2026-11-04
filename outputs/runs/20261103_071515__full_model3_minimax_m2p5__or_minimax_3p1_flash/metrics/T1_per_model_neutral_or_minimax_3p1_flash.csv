@@ -1,0 +1,2 @@
+model,latent_knowledge_rate,correct_rate_true,refusal_rate_true,incorrect_rate_true,calibration_success_false,hallucination_rate_false,recovery_rate_true,recovery_rate_false,suppression_proxy,true_suppression_rate,calibrated_abstention_rate,induced_halluc_proxy,mcnemar_refusal_p,n_total
+or_minimax_3p1_flash,0.44,0.32432432432432434,0.0,0.6756756756756757,0.4166666666666667,0.5833333333333334,0.08,0.14285714285714285,0.1388888888888889,0.013333333333333334,0.12,0.2727272727272727,0.001953125,100

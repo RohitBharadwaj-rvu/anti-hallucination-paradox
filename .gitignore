@@ -11,8 +11,6 @@ dist/
 build/
 .eggs/
 *.log
-data/checkpoints/
-outputs/
 .DS_Store
 Thumbs.db
 .idea/

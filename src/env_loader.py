@@ -13,15 +13,18 @@ logger = get_logger("ahp.env_loader")
 _KEY_VARS = {
     "nim": "NVIDIA_API_KEY",
     "fireworks": "FIREWORKS_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
 }
 _BASE_URL_VARS = {
     "nim": ("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"),
     "fireworks": ("FIREWORKS_BASE_URL", "https://api.fireworks.ai/inference/v1"),
+    "openrouter": ("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
     "lmstudio": ("LMSTUDIO_BASE_URL", "http://localhost:1234/v1"),
 }
 _PLACEHOLDER_PREFIXES = {
     "nim": "nvapi-REPLACE",
     "fireworks": "fw_REPLACE",
+    "openrouter": "sk-or-REPLACE",
 }
 
 
@@ -82,4 +85,4 @@ def get_base_url(provider: str) -> str:
 
 def is_billed(provider: str) -> bool:
     """Return True if the provider incurs cloud billing charges."""
-    return provider in ("nim", "fireworks")
+    return provider in ("nim", "fireworks", "openrouter")

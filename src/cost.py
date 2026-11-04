@@ -66,6 +66,7 @@ def estimate(
     budget_cfg = getattr(settings, "budget", {})
     nim_limit = budget_cfg.get("nim_max_tokens", 900_000)
     fw_limit = budget_cfg.get("fireworks_max_tokens", 2_000_000)
+    or_limit = budget_cfg.get("openrouter_max_tokens", 5_000_000)
 
     result = {
         "n_items": n,
@@ -83,8 +84,10 @@ def estimate(
         "judge_cost_usd": 0.0,  # always local
         "budget_nim_limit": nim_limit,
         "budget_fireworks_limit": fw_limit,
+        "budget_openrouter_limit": or_limit,
         "budget_nim_fraction": approx_cloud_tokens_total / nim_limit if nim_limit > 0 else 0,
         "budget_fw_fraction": approx_cloud_tokens_total / fw_limit if fw_limit > 0 else 0,
+        "budget_or_fraction": approx_cloud_tokens_total / or_limit if or_limit > 0 else 0,
     }
     return result
 
@@ -146,7 +149,8 @@ def print_cost_table(estimate_result: dict, run_name: str = "all") -> None:
     print(f"  Approx cloud tokens:    {r['approx_cloud_tokens_total']:>9,} (in+out)")
     print(f"  NIM budget fraction:    {r['budget_nim_fraction']:>8.1%}")
     print(f"  Fireworks budget frac:  {r['budget_fw_fraction']:>8.1%}")
-    print(f"  JUDGE cost:             $0.00 (local LM Studio)")
+    print(f"  OpenRouter budget frac: {r.get('budget_or_fraction', 0):>8.1%}")
+    print(f"  JUDGE cost:             $0.00 (local Bionic / LM Studio)")
     if "eta_note" in r:
         print(f"  ---")
         print(f"  Mean judge latency:     {r.get('mean_judge_latency_ms', 0):>8.1f} ms")

@@ -1,0 +1,6 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+or_minimax_m3,SimpleQA,0.2,,25,0
+or_minimax_m3,PopQA,0.44,,25,0
+or_minimax_m3,Bamboogle,0.9,,20,0
+or_minimax_m3,FalseQA,0.6,0.8,5,10
+or_minimax_m3,MultiHoax,,0.6,0,15

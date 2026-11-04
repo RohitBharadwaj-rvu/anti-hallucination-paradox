@@ -291,9 +291,47 @@ assert t11.iloc[0]['delta_true_suppression'] == 1.0
 print("[PASS] compute_rl_progression (T11) accurately tracks paired RL-family suppression transitions")
 
 # ================================================================
+# Fix 13: Unclosed <thought> block never scrapes inner words as verdict
+# ================================================================
+unclosed_think = "<thought>The expected answer is CORRECT or INCORRECT, let me check John Watson..."
+assert grader_mod._extract_verdict(unclosed_think, {CORRECT, INCORRECT}) is None
+print("[PASS] _extract_verdict returns None on unclosed <thought> block instead of scraping inner words")
+
+# ================================================================
+# Fix 14: Multi-modifier polite refusal regex + pre-judge exact gold match
+# ================================================================
+assert grader_mod.is_template_refusal("I do not have the specific information needed to answer that.")
+assert grader_mod.is_template_refusal("I don't have access to specific biographical information about this.")
+pre_calls = call_counter['judge']
+lbl_030, lat_030 = grader_mod.grade(router, item_map['benchmark_030'], 'Eastern Orthodox Christianity')
+assert lbl_030 == CORRECT and lat_030 == 0.0 and call_counter['judge'] == pre_calls
+print("[PASS] Polite multi-word refusal regex & pre-judge exact gold match (0ms judge bypass) verified")
+
+# ================================================================
+# Fix 15: _clean_and_regrade_row fixes benchmark_056 false-positive CORRECT -> INCORRECT
+# ================================================================
+from src.orchestrator import _clean_and_regrade_row
+bad_056_row = {
+    'run_name': 'or_minimax_3p1_flash',
+    'sample_id': 'benchmark_056',
+    'premise': True,
+    'stage': 's2',
+    'level': 'permissive',
+    'response_text': 'John Watson \u2014 the elder John Watson',
+    'label': CORRECT,
+    'judge_called': True,
+    'judge_api_calls': 1,
+    'judge_latency_ms': 19725.4,
+}
+cleaned_056 = _clean_and_regrade_row(bad_056_row, item_map)
+assert cleaned_056['label'] == INCORRECT, f"Expected INCORRECT for wrong benchmark_056 answer, got {cleaned_056['label']}"
+print("[PASS] _clean_and_regrade_row fixes benchmark_056 false-positive CORRECT -> INCORRECT")
+
+# ================================================================
 # Summary
 # ================================================================
 print("\n" + "="*60)
-print("ALL 12 BUG & AUDIT FIXES VERIFIED SUCCESSFULLY")
+print("ALL 15 BUG & AUDIT FIXES VERIFIED SUCCESSFULLY")
 print("="*60)
+
 

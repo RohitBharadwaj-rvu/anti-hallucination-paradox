@@ -728,6 +728,10 @@ def infer_family_and_stage(run_name: str, run_cfg: dict | None = None) -> tuple[
         fam = "MiniMax"
         stg = 1 if ("3p1" in rn or "3.1" in rn or "flash" in rn or "m2" in rn) else 2
         return fam, stg
+    if "deepseek" in rn:
+        fam = "DeepSeek"
+        stg = 2 if "1017" in rn else 1
+        return fam, stg
     if "kimi" in rn:
         fam = "Kimi"
         stg = 1

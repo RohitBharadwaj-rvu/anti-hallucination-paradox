@@ -1,0 +1,5 @@
+comparison_type,family,predecessor,successor,delta_latent_knowledge,delta_correct_neutral,delta_refusal_neutral,delta_refusal_conservative,delta_true_suppression,delta_suppression_proxy,delta_calibration_false,n_correct_to_refusal_neutral,n_correct_to_refusal_cons,n_known_newly_suppressed,mcnemar_cons_refusal_p,mcnemar_neutral_acc_p
+within_family_rl,GLM,or_glm_5p2,or_glm_5p3,0.0,-0.3333333333333333,0.0,0.0,0.0,0.0,0.0,0,0,0,1.0,1.0
+within_family_rl,MiniMax,or_minimax_3p1_flash,or_minimax_m3,0.3333333333333333,0.3333333333333333,0.3333333333333333,0.3333333333333333,0.0,0.3333333333333333,0.5,0,0,0,1.0,1.0
+cross_family_spectrum,MiniMax -> GLM,or_minimax_3p1_flash,or_glm_5p2,0.3333333333333333,0.3333333333333333,0.0,0.3333333333333333,0.0,0.3333333333333333,0.5,0,0,0,1.0,1.0
+cross_family_spectrum,GLM -> MiniMax,or_glm_5p3,or_minimax_m3,0.0,0.3333333333333333,0.3333333333333333,0.0,0.0,0.0,0.0,0,0,0,1.0,1.0

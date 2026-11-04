@@ -1,0 +1,23 @@
+model,answer_type,correct_rate_true,n_true
+or_deepseek_v4p1_flash_1017,Number,0.0,2
+or_deepseek_v4p1_flash_1017,Other,0.7241379310344828,29
+or_deepseek_v4p1_flash_1017,Person,0.3333333333333333,3
+or_deepseek_v4p1_flash_1017,Date,0.16666666666666666,6
+or_deepseek_v4p1_flash_1017,Place,0.4,5
+or_deepseek_v4p1_flash_1017,producer,0.5,4
+or_deepseek_v4p1_flash_1017,director,0.8,5
+or_deepseek_v4p1_flash_1017,religion,0.5,2
+or_deepseek_v4p1_flash_1017,composer,0.6666666666666666,3
+or_deepseek_v4p1_flash_1017,place of birth,0.0,2
+or_deepseek_v4p1_flash_1017,screenwriter,0.0,1
+or_deepseek_v4p1_flash_1017,genre,0.3333333333333333,3
+or_deepseek_v4p1_flash_1017,capital,1.0,1
+or_deepseek_v4p1_flash_1017,father,1.0,1
+or_deepseek_v4p1_flash_1017,capital of,1.0,1
+or_deepseek_v4p1_flash_1017,author,0.5,2
+or_deepseek_v4p1_flash_1017,Correction,0.6,5
+or_deepseek_v4p1_flash_1017,Food_Drink,,0
+or_deepseek_v4p1_flash_1017,Language_or_Nationality_or_Country,,0
+or_deepseek_v4p1_flash_1017,Date_or_Time_Period,,0
+or_deepseek_v4p1_flash_1017,Artwork,,0
+or_deepseek_v4p1_flash_1017,Common_noun,,0

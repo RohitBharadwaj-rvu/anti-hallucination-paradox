@@ -11,6 +11,7 @@ Grading flow:
   3. Else: factual judge (true premise) or false judge (false premise)
 """
 import re
+import threading
 from typing import Any
 
 from src.utils import get_logger
@@ -24,6 +25,7 @@ from src.prompts import (
 )
 
 logger = get_logger("ahp.grader")
+_thread_local = threading.local()
 
 # ---------------------------------------------------------------------------
 # Label constants
@@ -70,10 +72,11 @@ _RAW_PATTERNS = [
     r"the answer is unknown",
     r"answer is unknown",
     r"^unknown\b",
-    # Polite first-person abstentions ("I do not have any/specific/reliable information...")
-    r"i (?:do not|don'?t) have (?:any |specific |reliable |definitive |confident |enough |sufficient |the )?(?:information|knowledge|context|data|record|details)",
+    # Polite first-person abstentions ("I do not have [access to] any/specific/reliable information...")
+    r"i (?:do not|don'?t) have (?:access to )?(?:[a-z]+\s+){0,3}(?:information|knowledge|context|data|record|records|details)",
     r"i (?:do not|don'?t) have this (?:specific )?information",
     r"i (?:do not|don'?t) have the exact",
+    r"i am not familiar with the (?:historical |specific |exact )?(?:records|details|information)",
     r"not something i can (?:recall|confirm|verify)",
     r"i (?:cannot|can'?t) (?:confirm|determine|verify|provide|recall)\b",
     r"could you (?:please )?(?:specify|clarify|provide more context)",
@@ -136,10 +139,13 @@ def _extract_verdict(text: str, expected_tokens: list[str]) -> str | None:
     Parse a verdict from judge output.
     Strips any <think>/<thought> trace first, then checks the first non-empty line
     and last non-empty line for any of `expected_tokens`.
+    Never falls back to scanning inside an unclosed <thought> trace.
     """
     if not text:
         return None
-    clean_text, _ = strip_thinking(text)
+    clean_text, think_text = strip_thinking(text)
+    if think_text and not clean_text.strip():
+        return None
     candidate_text = clean_text if clean_text.strip() else text
     lines = [ln.strip() for ln in candidate_text.split("\n") if ln.strip()]
     if not lines:
@@ -218,20 +224,32 @@ def _call_judge_with_retry(
     Returns (verdict_label, total_latency_ms_for_this_grading_call).
     """
     total_latency_ms = 0.0
+    _thread_local.last_judge_api_calls = 0
     try:
         text, _, latency_ms = router.call_judge(messages)
+        _thread_local.last_judge_api_calls = 1
         total_latency_ms += latency_ms
         verdict = _extract_verdict(text, expected_tokens)
         if verdict is not None:
             return verdict, total_latency_ms
 
-        # Retry once with nudge
+        # Retry once with nudge (avoid feeding back an empty/truncated assistant message)
         logger.debug("Judge output unparseable (%r); retrying with nudge.", text[:80])
-        nudge_messages = messages + [
-            {"role": "assistant", "content": text},
-            {"role": "user", "content": render_nudge(choices_str)},
-        ]
+        if text.strip():
+            nudge_messages = messages + [
+                {"role": "assistant", "content": text},
+                {"role": "user", "content": render_nudge(choices_str)},
+            ]
+        else:
+            nudge_messages = [
+                messages[0],
+                {
+                    "role": "user",
+                    "content": messages[-1]["content"] + "\n" + render_nudge(choices_str),
+                },
+            ]
         text2, _, latency_ms2 = router.call_judge(nudge_messages)
+        _thread_local.last_judge_api_calls = 2
         total_latency_ms += latency_ms2
         verdict2 = _extract_verdict(text2, expected_tokens)
         if verdict2 is not None:
@@ -281,6 +299,7 @@ def grade(router: Any, item: dict, response_text: str) -> tuple[str, float]:
     Returns (label, judge_latency_ms).
       judge_latency_ms = 0.0 if no judge was called (template refusal, exact match, or empty).
     """
+    _thread_local.last_judge_api_calls = 0
     clean_text, _ = strip_thinking(response_text or "")
     text = clean_text.strip()
 
@@ -295,7 +314,11 @@ def grade(router: Any, item: dict, response_text: str) -> tuple[str, float]:
         else:
             return REFUSED, 0.0
 
-    # 3. Route to judge (with post-judge deterministic gold-patch safeguard for true premise)
+    # 3. Fast pre-judge deterministic gold match for unambiguous multi-word/long answers (>= 6 chars)
+    if item["premise"] and len(text) >= 6 and _is_exact_gold_match(item, text):
+        return CORRECT, 0.0
+
+    # 4. Route to judge (with post-judge deterministic gold-patch safeguard for true premise)
     if item["premise"]:
         label, lat = judge_factual(router, item, text)
         if label in (INCORRECT, JUDGE_ERROR) and _is_exact_gold_match(item, text):

@@ -1,56 +1,65 @@
 runs:
-  - name: fw_glm_5p2
+  - name: or_glm_5p2
     family: GLM
     rl_stage: 1
     target:
-      provider: fireworks
-      model_id: accounts/fireworks/models/glm-5p2
+      provider: openrouter
+      model_id: z-ai/glm-5.2
     judge:
       provider: lmstudio
-      model_id: qwen2.5-7b-instruct
+      model_id: google/gemma-4-e4b
 
-  - name: fw_glm_5p3
+  - name: or_glm_5p3
     family: GLM
     rl_stage: 2
     target:
-      provider: fireworks
-      model_id: accounts/fireworks/models/glm-5p3
+      provider: openrouter
+      model_id: z-ai/glm-5.3
     judge:
       provider: lmstudio
-      model_id: qwen2.5-7b-instruct
+      model_id: google/gemma-4-e4b
 
-  - name: fw_kimi_k2p7_code
-    family: Kimi
-    rl_stage: 1
-    target:
-      provider: fireworks
-      model_id: accounts/fireworks/models/kimi-k2p7-code
-    judge:
-      provider: lmstudio
-      model_id: qwen2.5-7b-instruct
-
-  - name: fw_minimax_3p1_flash
+  - name: or_minimax_3p1_flash
     family: MiniMax
     rl_stage: 1
     target:
-      provider: fireworks
-      model_id: accounts/fireworks/models/minimax-3p1-flash
+      provider: openrouter
+      model_id: minimax/minimax-m3.1-flash
     judge:
       provider: lmstudio
-      model_id: qwen2.5-7b-instruct
+      model_id: google/gemma-4-e4b
 
-  - name: fw_minimax_m3
+  - name: or_minimax_m3
     family: MiniMax
     rl_stage: 2
     target:
-      provider: fireworks
-      model_id: accounts/fireworks/models/minimax-m3
+      provider: openrouter
+      model_id: minimax/minimax-m3
     judge:
       provider: lmstudio
-      model_id: qwen2.5-7b-instruct
+      model_id: google/gemma-4-e4b
 
-# Provider->env var: nim->NVIDIA_API_KEY, fireworks->FIREWORKS_API_KEY (required);
-# lmstudio->LMSTUDIO_API_KEY if non-empty else literal "lm-studio" (never empty).
-# Provider->base_url: nim->NVIDIA_BASE_URL, fireworks->FIREWORKS_BASE_URL, lmstudio->LMSTUDIO_BASE_URL.
-# Provider->billed: nim/fireworks=True, lmstudio=False (excluded from budget + cost estimate).
+  - name: or_deepseek_v4p1_flash
+    family: DeepSeek
+    rl_stage: 1
+    target:
+      provider: openrouter
+      model_id: deepseek/deepseek-v4.1-flash
+    judge:
+      provider: lmstudio
+      model_id: google/gemma-4-e4b
 
+  - name: or_deepseek_v4p1_flash_1017
+    family: DeepSeek
+    rl_stage: 2
+    target:
+      provider: openrouter
+      model_id: deepseek/deepseek-v4.1-flash-1017
+    judge:
+      provider: lmstudio
+      model_id: google/gemma-4-e4b
+
+# Provider->env var: openrouter->OPENROUTER_API_KEY, nim->NVIDIA_API_KEY, fireworks->FIREWORKS_API_KEY;
+# lmstudio->LMSTUDIO_API_KEY if non-empty else literal "lm-studio" (used for local Bionic / LM Studio server).
+# Provider->base_url: openrouter->OPENROUTER_BASE_URL, nim->NVIDIA_BASE_URL, fireworks->FIREWORKS_BASE_URL, lmstudio->LMSTUDIO_BASE_URL.
+# Provider->billed: openrouter/nim/fireworks=True, lmstudio=False (excluded from budget + cost estimate).

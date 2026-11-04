@@ -1,0 +1,4 @@
+model,level,refusal_rate_true,correct_rate_true,incorrect_rate_true,hallucination_rate_false,calibration_success_false
+or_glm_5p3,permissive,0.0,0.6,0.4,0.76,0.24
+or_glm_5p3,neutral,0.2,0.56,0.24,0.2,0.8
+or_glm_5p3,conservative,0.4533333333333333,0.49333333333333335,0.05333333333333334,0.08,0.92

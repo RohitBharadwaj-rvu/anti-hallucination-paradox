@@ -1,0 +1,5 @@
+model,premise,hop,accuracy_metric,accuracy_value,n
+or_glm_5p2,False,multi,calibration_success_false,0.8571428571428571,15
+or_glm_5p2,False,single,calibration_success_false,1.0,10
+or_glm_5p2,True,multi,correct_rate_true,0.95,20
+or_glm_5p2,True,single,correct_rate_true,0.4,55

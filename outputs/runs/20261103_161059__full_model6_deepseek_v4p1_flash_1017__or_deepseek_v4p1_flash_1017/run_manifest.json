@@ -1,0 +1,36 @@
+{
+  "run_id": "20261103_161059__full_model6_deepseek_v4p1_flash_1017__or_deepseek_v4p1_flash_1017",
+  "timestamp_utc": "20261103_161059",
+  "mode": "full",
+  "run_tag": "model6_deepseek_v4p1_flash_1017",
+  "is_partial": false,
+  "models": [
+    "or_deepseek_v4p1_flash_1017"
+  ],
+  "total_rows_by_model": {
+    "or_deepseek_v4p1_flash_1017": 339
+  },
+  "archive_dir": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_161059__full_model6_deepseek_v4p1_flash_1017__or_deepseek_v4p1_flash_1017",
+  "archive_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\runs\\20261103_161059__full_model6_deepseek_v4p1_flash_1017__or_deepseek_v4p1_flash_1017\\report.html",
+  "mode_report": "C:\\Users\\Victus\\Desktop\\Hall\\anti-hallucination-paradox-main\\outputs\\report_full_or_deepseek_v4p1_flash_1017_model6_deepseek_v4p1_flash_1017.html",
+  "run_metadata": [
+    {
+      "run_name": "or_deepseek_v4p1_flash_1017",
+      "target_model": "deepseek/deepseek-v4.1-flash-1017",
+      "target_provider": "openrouter",
+      "family": "DeepSeek",
+      "rl_stage": 2,
+      "judge_model": "google/gemma-4-e4b",
+      "judge_provider": "lmstudio",
+      "lmstudio_base_url": "http://localhost:1234/v1",
+      "mode": "full",
+      "start_time": "2026-11-03T15:30:59Z",
+      "end_time": "2026-11-03T16:10:52Z",
+      "total_target_calls": 339,
+      "total_judge_calls": 185,
+      "approx_cloud_tokens": 161137,
+      "budget_fraction": "3.2%",
+      "mean_judge_latency_ms": 13001.4793873626
+    }
+  ]
+}

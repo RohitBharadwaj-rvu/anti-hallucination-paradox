@@ -1,0 +1,5 @@
+model,premise,hop,accuracy_metric,accuracy_value,n
+or_minimax_3p1_flash,False,multi,calibration_success_false,0.0,1
+or_minimax_3p1_flash,False,single,calibration_success_false,1.0,1
+or_minimax_3p1_flash,True,multi,correct_rate_true,0.0,1
+or_minimax_3p1_flash,True,single,correct_rate_true,0.5,2

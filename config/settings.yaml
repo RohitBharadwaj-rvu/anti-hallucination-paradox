@@ -3,7 +3,7 @@ decoding:
   temperature_fallback: 0.1
   seed: 42                  # pass only if provider accepts; swallow errors otherwise
   max_tokens_target: 8192   # thinking models need ample room for CoT + final answer without mid-CoT truncation
-  max_tokens_judge: 256     # allows local thinking judges (e.g. gemma-4-e4b-it) to finish <thought> + 1-word verdict
+  max_tokens_judge: 512     # allows local thinking judges (e.g. gemma-4-e4b-it) to finish <thought> + 1-word verdict without mid-thought truncation
   top_p: 1.0
 
 retry:
@@ -14,17 +14,19 @@ retry:
   retry_on_status: [429, 500, 502, 503, 504]
   retry_on_timeout: true    # IMPORTANT for the slow local judge
 
-concurrency_target: 1       # sequential within a target model by default; >1 for async cloud targets
+concurrency_target: 4       # 4 concurrent async cloud target workers (overlaps OpenRouter wait time with local judge)
 concurrency_judge: 1        # LOCAL judge: serialize (a single local model ~1 request at a time)
 
 rate:
   nim_rpm: 5                # conservative limit for rate-limited NIM models
   fireworks_rpm: 60         # adjust to your tier
+  openrouter_rpm: 60        # OpenRouter rate limit (requests per minute)
   lmstudio_rpm: 0           # 0 = no artificial gate (the judge semaphore is the real limiter)
 
 budget:                     # APPROXIMATE token kill-switch per CLOUD provider, per run (judge excluded)
   nim_max_tokens: 900000
   fireworks_max_tokens: 2000000
+  openrouter_max_tokens: 5000000
   hard_stop_at_fraction: 0.95
 
 lmstudio:                   # local-judge specifics

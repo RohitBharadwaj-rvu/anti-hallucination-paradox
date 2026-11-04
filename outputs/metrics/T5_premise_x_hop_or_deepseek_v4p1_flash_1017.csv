@@ -1,0 +1,5 @@
+model,premise,hop,accuracy_metric,accuracy_value,n
+or_deepseek_v4p1_flash_1017,False,multi,calibration_success_false,0.6,15
+or_deepseek_v4p1_flash_1017,False,single,calibration_success_false,1.0,10
+or_deepseek_v4p1_flash_1017,True,multi,correct_rate_true,0.9,20
+or_deepseek_v4p1_flash_1017,True,single,correct_rate_true,0.43636363636363634,55

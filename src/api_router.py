@@ -64,6 +64,7 @@ class ProviderBudget:
         self._limits = {
             "nim": settings.budget.get("nim_max_tokens", 900_000),
             "fireworks": settings.budget.get("fireworks_max_tokens", 2_000_000),
+            "openrouter": settings.budget.get("openrouter_max_tokens", 5_000_000),
         }
         self._hard_stop_fraction: float = settings.budget.get("hard_stop_at_fraction", 0.95)
 
@@ -161,6 +162,7 @@ class APIRouter:
         self._rpm_gates: dict[str, RpmGate] = {
             "nim": RpmGate(rate.get("nim_rpm", 35)),
             "fireworks": RpmGate(rate.get("fireworks_rpm", 60)),
+            "openrouter": RpmGate(rate.get("openrouter_rpm", 60)),
             "lmstudio": RpmGate(0),
         }
 
@@ -270,13 +272,17 @@ class APIRouter:
             self._loaded_judge_models,
         )
 
-        # If configured model_id not in loaded list, try first
+        # If configured model_id not in loaded list, try first non-embedding chat model
         if (
             self._lmstudio_auto_resolve
             and self._loaded_judge_models
             and self._judge_model_id not in self._loaded_judge_models
         ):
-            resolved = self._loaded_judge_models[0]
+            chat_candidates = [
+                m for m in self._loaded_judge_models
+                if "embed" not in m.lower()
+            ]
+            resolved = chat_candidates[0] if chat_candidates else self._loaded_judge_models[0]
             logger.info(
                 "judge model auto-resolved: %s -> %s",
                 self._judge_model_id,
@@ -527,9 +533,11 @@ class APIRouter:
                     raise
             elapsed = time.monotonic() - t0
 
-        # Strip any <think> or <thought> blocks emitted by local thinking judges (e.g. gemma-4)
-        clean_text, _ = strip_thinking(text)
-        if clean_text.strip():
+        # Strip any <think> or <thought> blocks emitted by local thinking judges (e.g. gemma-4).
+        # If the judge truncated mid-<thought> (think_trace non-empty and clean_text empty),
+        # return "" so _extract_verdict never scrapes words from inside an unfinished <thought>.
+        clean_text, think_trace = strip_thinking(text)
+        if think_trace or clean_text.strip():
             text = clean_text.strip()
 
         elapsed_ms = elapsed * 1000
