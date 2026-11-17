@@ -59,7 +59,7 @@ LACE-GRPO is the first post-training RL framework to combine:
            │   [2x NEUTRAL, 2x CONSERVATIVE, 2x PERMISSIVE]            │
            │                                                           │
            │  Fast Hybrid Verifier (<5 ms/rollout):                    │
-           │   1. strip_thinking() -> (thinking_text, answer_text)     │
+           │   1. strip_thinking() -> (answer_text, thinking_text)     │
            │   2. Stage-1 regex refusal check (src/grader.py)          │
            │   3. Exact/alias/numeric match + NLI debunk check         │
            │                                                           │
@@ -122,7 +122,7 @@ Let $\ell = \text{Label}(a_{\text{final}}) \in \{\text{CORRECT}, \text{REFUSAL},
   Giving $+1.0$ to `CORRECTED` over $+0.7$ to `REFUSED` encourages active fallacy explanation over lazy template refusals, while ensuring safe refusal still receives high positive reward.
 
 #### 2. CoT-to-Output Epistemic Consistency Penalty ($R_{\text{CoT}}$)
-Using `strip_thinking(y)` from [`src/thinking.py`](file:///c:/Users/rohit/.gemini/antigravity/playground/halucination%20paradox%20paper/src/thinking.py) to isolate $z_{\text{think}}$:
+Using `strip_thinking(y)` from [`src/thinking.py`](../src/thinking.py) to isolate $z_{\text{think}}$:
 
 $$R_{\text{CoT}}(x, y) = \begin{cases}
 -\beta_{\text{censor}} & \text{if } x \in \mathcal{D}_{\text{true}} \land \text{GoldInText}(y^*, z_{\text{think}}) \land \ell \neq \text{CORRECT} \\
@@ -154,11 +154,11 @@ $$R_{\text{press}}(x, p, y) = \begin{cases}
 * $+0.1$ if `answer_text` is non-empty, properly closed (`</think>` present if thinking model), and concise ($\le 40$ words outside `<think>`), matching Stage 1 evaluation criteria; $-0.5$ if `EMPTY` or unclosed truncated CoT.
 
 #### 5. Advantage Normalization & Anti-Collapse Guard
-To preserve within-prompt calibration while sharing cross-prompt knowledge, advantages are computed per prompt condition $p$ across its sub-group (or pooled across the $G=6$ group with prompt-centered baseline):
+Because $R_{\text{press}}$ only penalizes `CONSERVATIVE` and `PERMISSIVE` (never `NEUTRAL`), pure group-level mean centering would artificially inflate `NEUTRAL` advantages whenever other prompts incur $-\gamma$ penalties, while per-prompt standard deviation with $n=2$ collapses to $0$ whenever both rollouts for a prompt agree. We therefore use a **prompt-centered baseline with pooled group standard deviation**:
 
-$$A_i = \frac{R(x, p_i, y_i) - \mu_{\text{group}}(x)}{\sigma_{\text{group}}(x) + \epsilon}$$
+$$\mu_p(x) = \frac{1}{|G_p|} \sum_{j \in G_p} R(x, p, y_j), \qquad A_i = \frac{R(x, p_i, y_i) - \mu_{p_i}(x)}{\sigma_{\text{group}}(x) + \epsilon}$$
 
-**Zero-Variance Rescue (Anti-Collapse):** If all $6$ on-policy rollouts for a known item ($\hat{\kappa}(x) > 0$) return `REFUSAL`, $\sigma_{\text{group}} = 0$ and gradients vanish. Whenever this occurs, we substitute one cached `CORRECT` rollout from Phase 1's permissive probing into the group buffer (with importance-sampling clip / off-policy mask) so the policy always sees a positive learning signal toward retrieving the known fact.
+**Zero-Variance Rescue (Anti-Collapse):** If all $6$ on-policy rollouts for a known item ($\hat{\kappa}(x) > 0$) return `REFUSAL`, $\sigma_{\text{group}} = 0$ and gradients vanish. Whenever this occurs, a custom `GRPOTrainer` generation/loss hook substitutes one cached `CORRECT` rollout from Phase 1's permissive probing into the group buffer (scoring its `old_per_token_logps` under $\pi_{\theta_{\text{old}}}$ with an importance-sampling clip / off-policy mask) so the policy always sees a positive learning signal toward retrieving the known fact.
 
 ---
 
@@ -168,8 +168,8 @@ In Stage 1, grading with a local LLM judge (`google/gemma-4-e4b`) averaged ~11�
 
 LACE-GRPO decouples **training-time verification** (< 5 ms per rollout) from **final evaluation grading** (full Stage 1 judge):
 
-1. **Step 1 — CoT Extraction:** Call `strip_thinking(raw_output)` from [`src/thinking.py`](file:///c:/Users/rohit/.gemini/antigravity/playground/halucination%20paradox%20paper/src/thinking.py).
-2. **Step 2 — Deterministic Refusal Matching:** Reuse the compiled refusal patterns (`_RAW_PATTERNS`) from [`src/grader.py`](file:///c:/Users/rohit/.gemini/antigravity/playground/halucination%20paradox%20paper/src/grader.py) to immediately classify `REFUSAL` ($x \in \mathcal{D}_{\text{true}}$) or `REFUSED` ($x \in \mathcal{D}_{\text{false}}$).
+1. **Step 1 — CoT Extraction:** Call `strip_thinking(raw_output)` from [`src/thinking.py`](../src/thinking.py), which returns `(answer_text, thinking_text)`.
+2. **Step 2 — Deterministic Refusal Matching:** Reuse the compiled refusal patterns (`_RAW_PATTERNS`) from [`src/grader.py`](../src/grader.py) to immediately classify `REFUSAL` ($x \in \mathcal{D}_{\text{true}}$) or `REFUSED` ($x \in \mathcal{D}_{\text{false}}$).
 3. **Step 3 — True-Premise Fact Verification:**
    * Unicode/case/punctuation normalization + article stripping.
    * Numeric tolerance & date range parser (handling SimpleQA-style acceptable ranges).
@@ -178,6 +178,7 @@ LACE-GRPO decouples **training-time verification** (< 5 ms per rollout) from **f
 4. **Step 4 — False-Premise Debunk Verification (`CORRECTED` vs. `HALLUCINATED`):**
    * Fast premise-rejection regexes (*"false premise"*, *"impossible"*, *"does not exist"*, *"never happened"*, *"fictional"*, *"no such"*).
    * Batched lightweight NLI cross-encoder (`MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli`, < 1 GB VRAM on GPU) checking if `answer_text` entails the dataset's `explanation` (why the premise is false) $\rightarrow$ `CORRECTED`, or asserts an entity $\rightarrow$ `HALLUCINATED`.
+   * CoT premise-awareness check (`FalsePremiseFlagInText(z_think)`): applies the same premise-rejection regexes (and, when triggered, NLI entailment against `explanation`) to `thinking_text` to detect internal false-premise recognition before output hallucination.
 
 At **Stage 3 (Evaluation)**, the final trained LoRA checkpoint is merged/served and evaluated strictly through `run_experiment.py` with the exact Stage 1 `google/gemma-4-e4b` judge for unbiased comparison.
 
@@ -185,7 +186,7 @@ At **Stage 3 (Evaluation)**, the final trained LoRA checkpoint is merged/served 
 
 ## 6. Dataset Construction (Zero-Leakage & OOD Generalization)
 
-**Inviolable Rule:** [`data/benchmark_subset_100.json`](file:///c:/Users/rohit/.gemini/antigravity/playground/halucination%20paradox%20paper/data/benchmark_subset_100.json) is strictly excluded from all training, probing, and hyperparameter tuning (verified via normalized question-string deduplication + fuzzy Jaccard similarity < 0.8 filter).
+**Inviolable Rule:** [`data/benchmark_subset_100.json`](../data/benchmark_subset_100.json) is strictly excluded from all training, probing, and hyperparameter tuning (verified via normalized question-string deduplication + fuzzy Jaccard similarity < 0.8 filter).
 
 ### Training & Validation Split (~4,000 Train / 400 Val)
 Mirrors Stage 1's 5-subset distribution while holding out entire datasets (`Bamboogle`, `MultiHoax`) to prove Out-Of-Distribution (OOD) generalization:
@@ -215,10 +216,10 @@ Mirrors Stage 1's 5-subset distribution while holding out entire datasets (`Bamb
 | Parameter | A100-40GB Profile (`Qwen3-4B`) | A100-80GB Profile (`7B` / `8B`) |
 | :--- | :--- | :--- |
 | **Precision & Adapter** | `bf16` + LoRA (`r=32, alpha=64`, all linear) | `bf16` + LoRA (`r=32, alpha=64`, all linear) |
-| **Trainer Engine** | TRL `GRPOTrainer` + colocated `vLLM` sleep mode | TRL `GRPOTrainer` + colocated `vLLM` sleep mode |
+| **Trainer Engine** | TRL `GRPOTrainer` + colocated `vLLM` sleep mode (`use_liger_loss=True` / chunked CE) | TRL `GRPOTrainer` + colocated `vLLM` sleep mode |
 | **vLLM Memory Cap** | `gpu_memory_utilization = 0.45` | `gpu_memory_utilization = 0.45` |
 | **DeBERTa NLI Verifier** | ~0.9 GB VRAM (frozen, `fp16` inference) | ~0.9 GB VRAM (frozen, `fp16` inference) |
-| **Peak VRAM Usage** | ~27–32 GB | ~52–64 GB |
+| **Peak VRAM Usage** | ~27–32 GB *(use `per_device_train_batch_size=1–2` if without Liger loss)* | ~52–64 GB |
 | **Group Size ($G$)** | 6 (2 Neutral + 2 Conservative + 2 Permissive) | 6 (2 Neutral + 2 Conservative + 2 Permissive) |
 | **Prompt Batch / Grad Accum** | 4 prompts/step $\times$ 4 grad accum (16 prompts = 96 rollouts/opt step) | 8 prompts/step $\times$ 2 grad accum (16 prompts = 96 rollouts/opt step) |
 | **Max Completion Length** | 1,024 tokens (enough for CoT + concise answer) | 1,536 tokens |
