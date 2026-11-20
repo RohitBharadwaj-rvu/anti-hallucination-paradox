@@ -1,0 +1,23 @@
+model,answer_type,correct_rate_true,n_true
+M1_LACE_GRPO,Number,0.0,2
+M1_LACE_GRPO,Other,0.4,29
+M1_LACE_GRPO,Person,0.0,3
+M1_LACE_GRPO,Date,0.2,6
+M1_LACE_GRPO,Place,0.3333333333333333,5
+M1_LACE_GRPO,producer,0.3333333333333333,4
+M1_LACE_GRPO,director,0.0,5
+M1_LACE_GRPO,religion,1.0,2
+M1_LACE_GRPO,composer,0.3333333333333333,3
+M1_LACE_GRPO,place of birth,0.0,2
+M1_LACE_GRPO,screenwriter,0.0,1
+M1_LACE_GRPO,genre,0.0,3
+M1_LACE_GRPO,capital,1.0,1
+M1_LACE_GRPO,father,1.0,1
+M1_LACE_GRPO,capital of,1.0,1
+M1_LACE_GRPO,author,0.0,2
+M1_LACE_GRPO,Correction,0.5,5
+M1_LACE_GRPO,Food_Drink,,0
+M1_LACE_GRPO,Language_or_Nationality_or_Country,,0
+M1_LACE_GRPO,Date_or_Time_Period,,0
+M1_LACE_GRPO,Artwork,,0
+M1_LACE_GRPO,Common_noun,,0

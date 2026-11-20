@@ -1,0 +1,2 @@
+model,n_triggered_true,n_triggered_false,n_recovered_true,n_recovered_false,recovery_rate_true,recovery_rate_false,recovery_lift_true
+A1_NoLatent,67,5,2,1,0.029850746268656716,0.2,0.029850746268656716

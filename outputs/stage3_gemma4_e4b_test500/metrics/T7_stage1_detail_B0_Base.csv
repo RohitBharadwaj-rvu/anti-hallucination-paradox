@@ -1,0 +1,2 @@
+model,n_triggered_true,n_triggered_false,n_recovered_true,n_recovered_false,recovery_rate_true,recovery_rate_false,recovery_lift_true
+B0_Base,279,34,7,10,0.025089605734767026,0.29411764705882354,0.025089605734767026

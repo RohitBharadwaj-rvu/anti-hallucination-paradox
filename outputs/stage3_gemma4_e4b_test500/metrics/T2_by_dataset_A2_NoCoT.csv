@@ -1,0 +1,7 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+A2_NoCoT,HotpotBridgeCorrupted,,0.88,0,100
+A2_NoCoT,SimpleQA,0.03,,100,0
+A2_NoCoT,FalseQA,0.3181818181818182,0.7272727272727273,22,78
+A2_NoCoT,HotpotQA,0.1836734693877551,,50,0
+A2_NoCoT,2WikiMultihopQA,0.12,,50,0
+A2_NoCoT,PopQA,0.1,,100,0

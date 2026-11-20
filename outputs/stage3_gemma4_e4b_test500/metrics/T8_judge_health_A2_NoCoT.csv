@@ -1,0 +1,2 @@
+model,judge_calls,parse_failures,judge_errors,mean_latency_ms,median_latency_ms
+A2_NoCoT,989,0,0,23.177998017170996,0.5

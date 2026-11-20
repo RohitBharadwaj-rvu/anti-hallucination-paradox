@@ -1,0 +1,68 @@
+# Stage 2 LACE-GRPO configuration for google/gemma-4-E4B-it on Google Colab A100
+model:
+  model_id: google/gemma-4-E4B-it
+  enable_thinking: true
+  torch_dtype: bfloat16
+  load_in_4bit: false
+  attn_implementation: eager
+
+lora:
+  r: 32
+  lora_alpha: 64
+  lora_dropout: 0.05
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+  # Restrict LoRA to language_model layers (exclude vision/audio encoders)
+  exclude_modules:
+    - "*vision*"
+    - "*audio*"
+    - "*embed_vision*"
+    - "*embed_audio*"
+
+probing:
+  m_samples: 6
+  temperature: 0.7
+  top_p: 0.95
+  max_new_tokens: 512
+  batch_size: 24
+
+grpo:
+  group_size: 6               # 2x neutral, 2x conservative, 2x permissive
+  prompts_per_step: 8         # 8 * 6 = 48 rollouts per optimizer step
+  per_device_batch_size: 2
+  gradient_accumulation_steps: 4
+  max_steps: 200              # calibrated to ~80s/step (~4.4h/run, ~30 units/run)
+  refresh_kappa_at_step: 100  # mid-RL latent knowability refresh on remaining window
+  max_completion_length: 512
+  temperature: 0.7
+  top_p: 0.95
+  beta_kl: 0.02
+  learning_rate: 5.0e-6
+  warmup_ratio: 0.05
+  lr_scheduler_type: cosine
+  save_steps: 50
+  logging_steps: 5
+  use_vllm: false
+
+rewards:
+  lambda_cal: 0.5
+  lambda_sup: 0.6
+  beta_censor: 0.5
+  gamma_sup: 0.4
+  gamma_hal: 0.4
+  max_concise_words: 40
+  fmt_bonus: 0.1
+  fmt_penalty: -0.5
+
+sft_rtuning:
+  epochs: 2
+  per_device_batch_size: 8
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-5
+  max_seq_length: 1024

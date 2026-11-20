@@ -1,0 +1,28 @@
+model,answer_type,correct_rate_true,n_true
+M1_LACE_GRPO,date of birth,0.0,1
+M1_LACE_GRPO,Place,0.0,7
+M1_LACE_GRPO,Other,0.17692307692307693,133
+M1_LACE_GRPO,country,0.3,10
+M1_LACE_GRPO,Person,0.0,21
+M1_LACE_GRPO,Correction,,0
+M1_LACE_GRPO,date of death,0.0,2
+M1_LACE_GRPO,place of birth,0.0,3
+M1_LACE_GRPO,country of citizenship,0.5,4
+M1_LACE_GRPO,father,0.2,5
+M1_LACE_GRPO,Number,0.0,19
+M1_LACE_GRPO,occupation,0.0,4
+M1_LACE_GRPO,composer,0.0,10
+M1_LACE_GRPO,capital,0.6666666666666666,3
+M1_LACE_GRPO,genre,0.0,10
+M1_LACE_GRPO,Date,0.0,31
+M1_LACE_GRPO,sport,0.5,4
+M1_LACE_GRPO,screenwriter,0.07142857142857142,14
+M1_LACE_GRPO,capital of,0.0,3
+M1_LACE_GRPO,producer,0.0,8
+M1_LACE_GRPO,place of death,0.0,1
+M1_LACE_GRPO,author,0.0,10
+M1_LACE_GRPO,director,0.07692307692307693,13
+M1_LACE_GRPO,religion,0.0,4
+M1_LACE_GRPO,spouse,,0
+M1_LACE_GRPO,mother,0.0,2
+M1_LACE_GRPO,educated at,,0

@@ -1,0 +1,7 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+M1_LACE_GRPO,HotpotBridgeCorrupted,,0.87,0,100
+M1_LACE_GRPO,SimpleQA,0.02,,100,0
+M1_LACE_GRPO,FalseQA,0.3181818181818182,0.7792207792207793,22,78
+M1_LACE_GRPO,HotpotQA,0.1702127659574468,,50,0
+M1_LACE_GRPO,2WikiMultihopQA,0.16,,50,0
+M1_LACE_GRPO,PopQA,0.1,,100,0

@@ -1,0 +1,7 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+B2_TruthRL,HotpotBridgeCorrupted,,0.7319587628865979,0,100
+B2_TruthRL,SimpleQA,0.06593406593406594,,100,0
+B2_TruthRL,FalseQA,0.47619047619047616,0.9444444444444444,22,78
+B2_TruthRL,HotpotQA,0.39473684210526316,,50,0
+B2_TruthRL,2WikiMultihopQA,0.36363636363636365,,50,0
+B2_TruthRL,PopQA,0.1956521739130435,,100,0

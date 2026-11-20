@@ -1,0 +1,5 @@
+model,premise,hop,accuracy_metric,accuracy_value,n
+A2_NoCoT,False,multi,calibration_success_false,0.88,100
+A2_NoCoT,False,single,calibration_success_false,0.7272727272727273,78
+A2_NoCoT,True,multi,correct_rate_true,0.15151515151515152,100
+A2_NoCoT,True,single,correct_rate_true,0.09009009009009009,222

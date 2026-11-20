@@ -1,0 +1,2 @@
+model,latent_knowledge_rate,correct_rate_true,refusal_rate_true,incorrect_rate_true,calibration_success_false,hallucination_rate_false,recovery_rate_true,recovery_rate_false,suppression_proxy,true_suppression_rate,calibrated_abstention_rate,induced_halluc_proxy,mcnemar_refusal_p,n_total
+B0_Base,0.2795031055900621,0.2719665271966527,0.6778242677824268,0.0502092050209205,0.8053691275167785,0.19463087248322147,0.034482758620689655,0.2413793103448276,0.12440774333288207,0.10248447204968944,0.6273291925465838,0.28600000000000003,3.30289410703595e-06,500

@@ -1,0 +1,5 @@
+model,premise,hop,accuracy_metric,accuracy_value,n
+M1_LACE_GRPO,False,multi,calibration_success_false,0.8,15
+M1_LACE_GRPO,False,single,calibration_success_false,1.0,10
+M1_LACE_GRPO,True,multi,correct_rate_true,0.5882352941176471,20
+M1_LACE_GRPO,True,single,correct_rate_true,0.22727272727272727,55

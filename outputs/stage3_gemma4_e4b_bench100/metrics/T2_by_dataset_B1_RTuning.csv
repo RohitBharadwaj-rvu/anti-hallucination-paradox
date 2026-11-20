@@ -1,0 +1,6 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+B1_RTuning,SimpleQA,0.0,,25,0
+B1_RTuning,PopQA,0.08,,25,0
+B1_RTuning,Bamboogle,0.0,,20,0
+B1_RTuning,FalseQA,0.2,1.0,5,10
+B1_RTuning,MultiHoax,,1.0,0,15

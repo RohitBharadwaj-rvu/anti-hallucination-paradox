@@ -1,0 +1,2 @@
+model,judge_calls,parse_failures,judge_errors,mean_latency_ms,median_latency_ms
+B2_TruthRL,1426,0,0,69.86285244602549,0.5

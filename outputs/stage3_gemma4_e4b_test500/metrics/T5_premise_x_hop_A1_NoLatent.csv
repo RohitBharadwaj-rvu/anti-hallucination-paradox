@@ -1,0 +1,5 @@
+model,premise,hop,accuracy_metric,accuracy_value,n
+A1_NoLatent,False,multi,calibration_success_false,0.89,100
+A1_NoLatent,False,single,calibration_success_false,0.7662337662337663,78
+A1_NoLatent,True,multi,correct_rate_true,0.1326530612244898,100
+A1_NoLatent,True,single,correct_rate_true,0.09090909090909091,222

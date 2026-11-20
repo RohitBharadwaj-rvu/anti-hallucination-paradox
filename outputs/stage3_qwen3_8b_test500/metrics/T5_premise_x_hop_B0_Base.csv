@@ -1,0 +1,5 @@
+model,premise,hop,accuracy_metric,accuracy_value,n
+B0_Base,False,multi,calibration_success_false,0.7093023255813954,100
+B0_Base,False,single,calibration_success_false,0.9365079365079365,78
+B0_Base,True,multi,correct_rate_true,0.4520547945205479,100
+B0_Base,True,single,correct_rate_true,0.1927710843373494,222

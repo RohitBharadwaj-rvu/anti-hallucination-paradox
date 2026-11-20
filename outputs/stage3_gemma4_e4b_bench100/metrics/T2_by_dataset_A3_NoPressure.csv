@@ -1,0 +1,6 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+A3_NoPressure,SimpleQA,0.0,,25,0
+A3_NoPressure,PopQA,0.16,,25,0
+A3_NoPressure,Bamboogle,0.15789473684210525,,20,0
+A3_NoPressure,FalseQA,0.4,0.8,5,10
+A3_NoPressure,MultiHoax,,0.7857142857142857,0,15

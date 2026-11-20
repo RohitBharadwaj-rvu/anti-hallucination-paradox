@@ -1,0 +1,5 @@
+model,premise,hop,accuracy_metric,accuracy_value,n
+A3_NoPressure,False,multi,calibration_success_false,0.7857142857142857,15
+A3_NoPressure,False,single,calibration_success_false,0.8,10
+A3_NoPressure,True,multi,correct_rate_true,0.15789473684210525,20
+A3_NoPressure,True,single,correct_rate_true,0.10909090909090909,55

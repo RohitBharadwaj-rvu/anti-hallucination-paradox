@@ -1,0 +1,23 @@
+model,answer_type,correct_rate_true,n_true
+B2_TruthRL,Number,0.0,2
+B2_TruthRL,Other,0.07407407407407407,29
+B2_TruthRL,Person,0.0,3
+B2_TruthRL,Date,0.0,6
+B2_TruthRL,Place,0.0,5
+B2_TruthRL,producer,0.25,4
+B2_TruthRL,director,0.0,5
+B2_TruthRL,religion,0.5,2
+B2_TruthRL,composer,0.0,3
+B2_TruthRL,place of birth,0.0,2
+B2_TruthRL,screenwriter,0.0,1
+B2_TruthRL,genre,0.0,3
+B2_TruthRL,capital,1.0,1
+B2_TruthRL,father,0.0,1
+B2_TruthRL,capital of,1.0,1
+B2_TruthRL,author,0.0,2
+B2_TruthRL,Correction,0.5,5
+B2_TruthRL,Food_Drink,,0
+B2_TruthRL,Language_or_Nationality_or_Country,,0
+B2_TruthRL,Date_or_Time_Period,,0
+B2_TruthRL,Artwork,,0
+B2_TruthRL,Common_noun,,0

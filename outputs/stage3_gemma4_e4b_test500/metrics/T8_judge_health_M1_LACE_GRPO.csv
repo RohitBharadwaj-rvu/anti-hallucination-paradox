@@ -1,0 +1,2 @@
+model,judge_calls,parse_failures,judge_errors,mean_latency_ms,median_latency_ms
+M1_LACE_GRPO,996,0,0,35.10674671886808,0.5

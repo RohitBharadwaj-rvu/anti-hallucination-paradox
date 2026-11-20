@@ -1,0 +1,5 @@
+model,premise,hop,accuracy_metric,accuracy_value,n
+B1_RTuning,False,multi,calibration_success_false,1.0,100
+B1_RTuning,False,single,calibration_success_false,1.0,78
+B1_RTuning,True,multi,correct_rate_true,0.04,100
+B1_RTuning,True,single,correct_rate_true,0.05405405405405406,222

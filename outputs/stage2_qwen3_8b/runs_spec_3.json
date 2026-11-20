@@ -1,0 +1,20 @@
+[
+  {
+    "name": "B0_Base",
+    "lora_path": null,
+    "family": "Qwen3-8B",
+    "rl_stage": "Base"
+  },
+  {
+    "name": "B2_TruthRL",
+    "lora_path": "/content/ahp/outputs/stage2_qwen3_8b/B2_TruthRL/final_lora",
+    "family": "Qwen3-8B",
+    "rl_stage": "TruthRL (Static)"
+  },
+  {
+    "name": "M1_LACE_GRPO",
+    "lora_path": "/content/ahp/outputs/stage2_qwen3_8b/M1_LACE_GRPO/final_lora",
+    "family": "Qwen3-8B",
+    "rl_stage": "LACE-GRPO"
+  }
+]

@@ -1,0 +1,2 @@
+model,n_triggered_true,n_triggered_false,n_recovered_true,n_recovered_false,recovery_rate_true,recovery_rate_false,recovery_lift_true
+A2_NoCoT,286,33,3,10,0.01048951048951049,0.30303030303030304,0.01048951048951049

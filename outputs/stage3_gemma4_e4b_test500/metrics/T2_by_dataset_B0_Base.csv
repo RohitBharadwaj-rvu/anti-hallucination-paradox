@@ -1,0 +1,7 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+B0_Base,HotpotBridgeCorrupted,,0.8484848484848485,0,100
+B0_Base,SimpleQA,0.030612244897959183,,100,0
+B0_Base,FalseQA,0.3181818181818182,0.7532467532467533,22,78
+B0_Base,HotpotQA,0.1702127659574468,,50,0
+B0_Base,2WikiMultihopQA,0.1836734693877551,,50,0
+B0_Base,PopQA,0.1,,100,0

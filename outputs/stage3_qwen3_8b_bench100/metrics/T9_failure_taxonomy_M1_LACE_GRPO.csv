@@ -1,0 +1,2 @@
+model,latent_knowledge_rate,robust_recall_rate,true_suppression_rate,retrieval_failure_rate,calibrated_abstention_rate,uncalibrated_ignorance_rate,true_suppression_share_of_cons_ref,s0_fail_recovered_or_suppressed_rate,epistemic_efficiency_ratio,mcnemar_refusal_p,mcnemar_accuracy_p
+M1_LACE_GRPO,0.3333333333333333,0.2,0.09333333333333334,0.04,0.6,0.06666666666666667,0.1276595744680851,0.09090909090909091,0.6666666666666666,0.057373046875,0.109375

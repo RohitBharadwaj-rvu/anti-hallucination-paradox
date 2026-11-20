@@ -18,3 +18,12 @@ Thumbs.db
 *.ipynb_checkpoints/
 .env
 .env.*
+
+# Large trained weights/archives & keepalive runtime artifacts (>100MB GitHub limit)
+*.safetensors
+*.tar.gz
+*.pt
+outputs/stage2_*/**/checkpoint-*/
+outputs/stage2_*/**/final_lora/tokenizer.json
+outputs/keepalive.log
+outputs/STOP_KEEPALIVE

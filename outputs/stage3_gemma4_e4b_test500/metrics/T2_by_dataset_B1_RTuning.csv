@@ -1,0 +1,7 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+B1_RTuning,HotpotBridgeCorrupted,,1.0,0,100
+B1_RTuning,SimpleQA,0.0,,100,0
+B1_RTuning,FalseQA,0.18181818181818182,1.0,22,78
+B1_RTuning,HotpotQA,0.02,,50,0
+B1_RTuning,2WikiMultihopQA,0.06,,50,0
+B1_RTuning,PopQA,0.08,,100,0

@@ -1,0 +1,5 @@
+model,premise,hop,accuracy_metric,accuracy_value,n
+B2_TruthRL,False,multi,calibration_success_false,0.7319587628865979,100
+B2_TruthRL,False,single,calibration_success_false,0.9444444444444444,78
+B2_TruthRL,True,multi,correct_rate_true,0.3780487804878049,100
+B2_TruthRL,True,single,correct_rate_true,0.16666666666666666,222

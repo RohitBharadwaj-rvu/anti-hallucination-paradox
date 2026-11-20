@@ -1,0 +1,32 @@
+model,sample_id,question,expected_answers,model_response,judge_verdict
+B0_Base,benchmark_051,When was the philosopher that formulated the hard problem of consciousness born?,"['April 20, 1966']",1966<|im_end|>,REFUSAL
+B0_Base,benchmark_052,When was the author of The Population Bomb born?,"['May 29, 1932']","May 12, 1932.<|im_end|>",REFUSAL
+B0_Base,benchmark_056,Who was the father of the father of behaviorism?,['Pickens Butler Watson'],,EMPTY
+B0_Base,benchmark_057,Where was the person who shared the Nobel Prize in Physics in 1954 with Max Born born?,"['Oranienburg, Germany']","Berlin, Germany.<|im_end|>",REFUSAL
+B0_Base,benchmark_058,Who was the second wife of the founder of CNN?,['Jane Shirley Smith'],Mary Frances Turner<|im_end|>,REFUSAL
+B0_Base,benchmark_059,"In 2016, who was the host of the longest running American game show?",['Drew Carey'],Alex Trebek<|im_end|>,REFUSAL
+B0_Base,benchmark_060,Who was president of the United States in the year that Citibank was founded?,['james madison'],,EMPTY
+B0_Base,benchmark_065,In what country is the third largest stadium in the world?,['United States'],Mexico.<|im_end|>,REFUSAL
+B0_Base,benchmark_067,Who preceded the Roman emperor that declared war on the sea?,['Tiberius'],,EMPTY
+B0_Base,benchmark_069,Who is the father of the originator of cybernetics?,['Leo Wiener'],Solomon Wiener.<|im_end|>,REFUSAL
+B0_Base,benchmark_070,Who is the father of the father of modern experimental psychology?,['Maximilian Wundt'],Moritz Wundt.<|im_end|>,REFUSAL
+B2_TruthRL,benchmark_051,When was the philosopher that formulated the hard problem of consciousness born?,"['April 20, 1966']",1966<|im_end|>,REFUSAL
+B2_TruthRL,benchmark_052,When was the author of The Population Bomb born?,"['May 29, 1932']","May 15, 1932.<|im_end|>",REFUSAL
+B2_TruthRL,benchmark_053,When was the longest bridge in the world opened?,"['30 June 2011', 'June 30, 2011', 'June 2011', '2011']",2010<|im_end|>,REFUSAL
+B2_TruthRL,benchmark_056,Who was the father of the father of behaviorism?,['Pickens Butler Watson'],,EMPTY
+B2_TruthRL,benchmark_058,Who was the second wife of the founder of CNN?,['Jane Shirley Smith'],Joan Hartsoe.<|im_end|>,REFUSAL
+B2_TruthRL,benchmark_059,"In 2016, who was the host of the longest running American game show?",['Drew Carey'],Alex Trebek.<|im_end|>,REFUSAL
+B2_TruthRL,benchmark_065,In what country is the third largest stadium in the world?,['United States'],Mexico.<|im_end|>,REFUSAL
+B2_TruthRL,benchmark_067,Who preceded the Roman emperor that declared war on the sea?,['Tiberius'],The premise is false; no Roman emperor is known for declaring war on the sea.<|im_end|>,REFUSAL
+B2_TruthRL,benchmark_069,Who is the father of the originator of cybernetics?,['Leo Wiener'],Solomon Wiener.<|im_end|>,REFUSAL
+B2_TruthRL,benchmark_070,Who is the father of the father of modern experimental psychology?,['Maximilian Wundt'],Moritz Wundt.<|im_end|>,REFUSAL
+M1_LACE_GRPO,benchmark_052,When was the author of The Population Bomb born?,"['May 29, 1932']","May 7, 1932.<|im_end|>",REFUSAL
+M1_LACE_GRPO,benchmark_056,Who was the father of the father of behaviorism?,['Pickens Butler Watson'],,EMPTY
+M1_LACE_GRPO,benchmark_057,Where was the person who shared the Nobel Prize in Physics in 1954 with Max Born born?,"['Oranienburg, Germany']","Würzburg, Germany.<|im_end|>",REFUSAL
+M1_LACE_GRPO,benchmark_058,Who was the second wife of the founder of CNN?,['Jane Shirley Smith'],,EMPTY
+M1_LACE_GRPO,benchmark_059,"In 2016, who was the host of the longest running American game show?",['Drew Carey'],Alex Trebek.<|im_end|>,REFUSAL
+M1_LACE_GRPO,benchmark_060,Who was president of the United States in the year that Citibank was founded?,['james madison'],,EMPTY
+M1_LACE_GRPO,benchmark_065,In what country is the third largest stadium in the world?,['United States'],Mexico.<|im_end|>,REFUSAL
+M1_LACE_GRPO,benchmark_067,Who preceded the Roman emperor that declared war on the sea?,['Tiberius'],The premise is false; no Roman emperor is historically known for declaring war on the sea.<|im_end|>,REFUSAL
+M1_LACE_GRPO,benchmark_069,Who is the father of the originator of cybernetics?,['Leo Wiener'],Alexander Wiener.<|im_end|>,REFUSAL
+M1_LACE_GRPO,benchmark_070,Who is the father of the father of modern experimental psychology?,['Maximilian Wundt'],Moritz Wundt.<|im_end|>,REFUSAL

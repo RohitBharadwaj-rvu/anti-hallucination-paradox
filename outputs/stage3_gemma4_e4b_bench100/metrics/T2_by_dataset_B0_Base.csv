@@ -1,0 +1,6 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+B0_Base,SimpleQA,0.0,,25,0
+B0_Base,PopQA,0.16,,25,0
+B0_Base,Bamboogle,0.21052631578947367,,20,0
+B0_Base,FalseQA,0.4,0.7,5,10
+B0_Base,MultiHoax,,0.75,0,15

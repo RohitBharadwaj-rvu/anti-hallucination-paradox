@@ -1,0 +1,6 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+B2_TruthRL,SimpleQA,0.0,,25,0
+B2_TruthRL,PopQA,0.16,,25,0
+B2_TruthRL,Bamboogle,0.1111111111111111,,20,0
+B2_TruthRL,FalseQA,0.5,0.9,5,10
+B2_TruthRL,MultiHoax,,0.8571428571428571,0,15

@@ -1,0 +1,2 @@
+model,latent_knowledge_rate,correct_rate_true,refusal_rate_true,incorrect_rate_true,calibration_success_false,hallucination_rate_false,recovery_rate_true,recovery_rate_false,suppression_proxy,true_suppression_rate,calibrated_abstention_rate,induced_halluc_proxy,mcnemar_refusal_p,n_total
+M1_LACE_GRPO,0.2080745341614907,0.109717868338558,0.8589341692789969,0.03134796238244514,0.8305084745762712,0.1694915254237288,0.02464788732394366,0.2,0.18602480177023795,0.12422360248447205,0.7732919254658385,0.6298047589993898,6.449688895763542e-24,500

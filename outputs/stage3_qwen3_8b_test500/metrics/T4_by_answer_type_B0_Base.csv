@@ -1,0 +1,28 @@
+model,answer_type,correct_rate_true,n_true
+B0_Base,date of birth,0.0,1
+B0_Base,Place,0.0,7
+B0_Base,Other,0.425531914893617,133
+B0_Base,country,0.4,10
+B0_Base,Person,0.07692307692307693,21
+B0_Base,Correction,,0
+B0_Base,date of death,0.0,2
+B0_Base,place of birth,0.3333333333333333,3
+B0_Base,country of citizenship,1.0,4
+B0_Base,father,0.25,5
+B0_Base,Number,0.0,19
+B0_Base,occupation,0.25,4
+B0_Base,composer,0.0,10
+B0_Base,capital,0.6666666666666666,3
+B0_Base,genre,0.125,10
+B0_Base,Date,0.0,31
+B0_Base,sport,0.5,4
+B0_Base,screenwriter,0.16666666666666666,14
+B0_Base,capital of,0.3333333333333333,3
+B0_Base,producer,0.0,8
+B0_Base,place of death,1.0,1
+B0_Base,author,0.0,10
+B0_Base,director,0.18181818181818182,13
+B0_Base,religion,0.3333333333333333,4
+B0_Base,spouse,,0
+B0_Base,mother,0.5,2
+B0_Base,educated at,,0

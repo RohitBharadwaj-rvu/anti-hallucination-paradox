@@ -1,0 +1,6 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+M1_LACE_GRPO,SimpleQA,0.10526315789473684,,25,0
+M1_LACE_GRPO,PopQA,0.2857142857142857,,25,0
+M1_LACE_GRPO,Bamboogle,0.5882352941176471,,20,0
+M1_LACE_GRPO,FalseQA,0.5,1.0,5,10
+M1_LACE_GRPO,MultiHoax,,0.8,0,15

@@ -1,0 +1,50 @@
+{
+  "seed": 42,
+  "benchmark_leakage_verified": true,
+  "train_val_test_disjoint_verified": true,
+  "train": {
+    "total": 4000,
+    "premise_true": 2603,
+    "premise_false": 1397,
+    "hop_single": 2400,
+    "hop_multi": 1600,
+    "by_dataset": {
+      "FalseQA": 800,
+      "PopQA": 800,
+      "HotpotQA": 400,
+      "2WikiMultihopQA": 400,
+      "SimpleQA": 800,
+      "HotpotBridgeCorrupted": 800
+    }
+  },
+  "val": {
+    "total": 400,
+    "premise_true": 260,
+    "premise_false": 140,
+    "hop_single": 240,
+    "hop_multi": 160,
+    "by_dataset": {
+      "HotpotBridgeCorrupted": 80,
+      "FalseQA": 80,
+      "PopQA": 80,
+      "SimpleQA": 80,
+      "HotpotQA": 40,
+      "2WikiMultihopQA": 40
+    }
+  },
+  "test_heldout": {
+    "total": 500,
+    "premise_true": 322,
+    "premise_false": 178,
+    "hop_single": 300,
+    "hop_multi": 200,
+    "by_dataset": {
+      "HotpotBridgeCorrupted": 100,
+      "SimpleQA": 100,
+      "FalseQA": 100,
+      "HotpotQA": 50,
+      "2WikiMultihopQA": 50,
+      "PopQA": 100
+    }
+  }
+}

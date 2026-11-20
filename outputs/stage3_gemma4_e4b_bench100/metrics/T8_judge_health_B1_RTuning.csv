@@ -1,0 +1,2 @@
+model,judge_calls,parse_failures,judge_errors,mean_latency_ms,median_latency_ms
+B1_RTuning,141,0,0,113.53004450341876,137.53355299922987

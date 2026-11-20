@@ -1,0 +1,2 @@
+model,n_triggered_true,n_triggered_false,n_recovered_true,n_recovered_false,recovery_rate_true,recovery_rate_false,recovery_lift_true
+B1_RTuning,72,0,7,0,0.09722222222222222,,0.09722222222222222

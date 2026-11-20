@@ -1,0 +1,6 @@
+model,dataset,correct_rate_true,calibration_success_false,n_true,n_false
+A2_NoCoT,SimpleQA,0.04,,25,0
+A2_NoCoT,PopQA,0.16,,25,0
+A2_NoCoT,Bamboogle,0.10526315789473684,,20,0
+A2_NoCoT,FalseQA,0.4,1.0,5,10
+A2_NoCoT,MultiHoax,,0.7857142857142857,0,15

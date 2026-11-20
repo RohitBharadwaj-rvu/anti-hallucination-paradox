@@ -1,0 +1,2 @@
+model,n_triggered_true,n_triggered_false,n_recovered_true,n_recovered_false,recovery_rate_true,recovery_rate_false,recovery_lift_true
+B2_TruthRL,281,22,6,4,0.021352313167259787,0.18181818181818182,0.021352313167259787

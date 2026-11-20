@@ -1,0 +1,2 @@
+model,n_triggered_true,n_triggered_false,n_recovered_true,n_recovered_false,recovery_rate_true,recovery_rate_false,recovery_lift_true
+A3_NoPressure,286,29,5,6,0.017482517482517484,0.20689655172413793,0.017482517482517484

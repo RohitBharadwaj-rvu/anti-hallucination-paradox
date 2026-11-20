@@ -1,0 +1,2 @@
+model,n_triggered_true,n_triggered_false,n_recovered_true,n_recovered_false,recovery_rate_true,recovery_rate_false,recovery_lift_true
+M1_LACE_GRPO,209,32,9,8,0.0430622009569378,0.25,0.0430622009569378

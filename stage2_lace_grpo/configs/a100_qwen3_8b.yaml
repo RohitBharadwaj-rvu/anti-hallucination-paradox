@@ -1,0 +1,55 @@
+# Stage 2 LACE-GRPO configuration for Qwen/Qwen3-8B (Scale-Up Check) on Google Colab A100
+model:
+  model_id: Qwen/Qwen3-8B
+  enable_thinking: true
+  torch_dtype: bfloat16
+  load_in_4bit: false
+  attn_implementation: sdpa
+
+lora:
+  r: 32
+  lora_alpha: 64
+  lora_dropout: 0.05
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+probing:
+  m_samples: 6
+  temperature: 0.7
+  top_p: 0.95
+  max_new_tokens: 512
+  batch_size: 24
+
+grpo:
+  group_size: 6
+  prompts_per_step: 8
+  per_device_batch_size: 2
+  gradient_accumulation_steps: 4
+  max_steps: 180
+  refresh_kappa_at_step: 90
+  max_completion_length: 512
+  temperature: 0.7
+  top_p: 0.95
+  beta_kl: 0.02
+  learning_rate: 5.0e-6
+  warmup_ratio: 0.05
+  lr_scheduler_type: cosine
+  save_steps: 50
+  logging_steps: 5
+  use_vllm: false
+
+rewards:
+  lambda_cal: 0.5
+  lambda_sup: 0.6
+  beta_censor: 0.5
+  gamma_sup: 0.4
+  gamma_hal: 0.4
+  max_concise_words: 40
+  fmt_bonus: 0.1
+  fmt_penalty: -0.5

@@ -1,0 +1,2 @@
+model,sample_id,dataset,level,final_label,gold_in_cot,caution_triggers_in_cot,final_response,cot_excerpt
+B1_RTuning,heldout_0189,2WikiMultihopQA,permissive,REFUSAL,"Well Done, Henry",—,The Incredibly Strange Creatures Who Stopped Living And Became Mixed-Up Zombies<eos>,"iving And Became Mixed-Up Zombies* (1964): Director is Robert Stromberg. *   *Well Done, Henry* (1964): Director is Robert Stromberg.  *Conclusion remains: Same director, same age.*  7.  **Output the chosen film title.**"

@@ -1,0 +1,23 @@
+model,answer_type,correct_rate_true,n_true
+B1_RTuning,Number,0.0,2
+B1_RTuning,Other,0.0,29
+B1_RTuning,Person,0.0,3
+B1_RTuning,Date,0.0,6
+B1_RTuning,Place,0.0,5
+B1_RTuning,producer,0.0,4
+B1_RTuning,director,0.0,5
+B1_RTuning,religion,0.0,2
+B1_RTuning,composer,0.0,3
+B1_RTuning,place of birth,0.0,2
+B1_RTuning,screenwriter,0.0,1
+B1_RTuning,genre,0.0,3
+B1_RTuning,capital,1.0,1
+B1_RTuning,father,0.0,1
+B1_RTuning,capital of,1.0,1
+B1_RTuning,author,0.0,2
+B1_RTuning,Correction,0.2,5
+B1_RTuning,Food_Drink,,0
+B1_RTuning,Language_or_Nationality_or_Country,,0
+B1_RTuning,Date_or_Time_Period,,0
+B1_RTuning,Artwork,,0
+B1_RTuning,Common_noun,,0

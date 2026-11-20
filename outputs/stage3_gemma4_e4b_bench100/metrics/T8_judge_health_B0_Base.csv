@@ -1,0 +1,2 @@
+model,judge_calls,parse_failures,judge_errors,mean_latency_ms,median_latency_ms
+B0_Base,237,0,0,98.49266832497217,136.11007399958908
